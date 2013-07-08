@@ -18,6 +18,9 @@ AC_PROG_CC()
 # Check for libcheck C unit testing library
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
 
+# Do we have the _Bool built-in?
+AC_HEADER_STDBOOL()
+
 # Output files
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile])
