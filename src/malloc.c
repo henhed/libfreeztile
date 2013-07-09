@@ -20,9 +20,10 @@
 #include <malloc.h>
 #include <assert.h>
 #include <string.h>
+#include <errno.h>
 #include "malloc.h"
 
-/* Keeps trac of memory usage for debugging purposes.  */
+/* Keeps track of memory usage for debugging purposes.  */
 static uint_t _total_meta = 0;
 static uint_t _total_disp = 0;
 
@@ -33,7 +34,7 @@ struct memory_meta
   size_t len;
 };
 
-/* Reference couting and memory usage tracking  version of `realloc'.
+/* Reference counting and memory usage tracking  version of `realloc'.
    The meta is placed in memory before the returned pointer.  */
 ptr_t
 fz_realloc (ptr_t ptr, size_t len)
@@ -84,16 +85,20 @@ fz_malloc (size_t len)
 ptr_t
 fz_retain (ptr_t ptr)
 {
-  ++(((struct memory_meta *) ptr) - 1)->numref;
+  if (ptr != NULL)
+    ++(((struct memory_meta *) ptr) - 1)->numref;
   return ptr;
 }
 
 /* Free the memory pointed to by PTR if decreasing it's reference
-   counter makes it reach zero.
-   Returns the number of references remaining after a decrease.  */
-uint_t
+   counter makes it reach zero.  Returns the number of references
+   remaining after a decrease or a negative error code on error.  */
+int_t
 fz_free (ptr_t ptr)
 {
+  if (ptr == NULL)
+    return -EINVAL;
+
   struct memory_meta *meta = ((struct memory_meta *) ptr) - 1;
 
   if (--(meta->numref) == 0)

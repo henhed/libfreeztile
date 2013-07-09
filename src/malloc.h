@@ -31,7 +31,7 @@ __BEGIN_DECLS
 extern ptr_t fz_realloc (ptr_t, size_t);
 extern ptr_t fz_malloc (size_t);
 extern ptr_t fz_retain (ptr_t);
-extern uint_t fz_free (ptr_t);
+extern int_t fz_free (ptr_t);
 extern size_t fz_memusage (uint_t flags);
 
 __END_DECLS

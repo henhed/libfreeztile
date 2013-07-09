@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <check.h>
+#include <errno.h>
 #include "malloc.h"
 
 /* Test variables initiated in `setup'.  */
@@ -68,10 +69,19 @@ END_TEST
 /* Test for `fz_retain'.  */
 START_TEST (test_fz_retain)
 {
-  (void) fz_retain (test_ptr);
-  (void) fz_retain (test_ptr);
+  ck_assert (fz_retain (test_ptr) == test_ptr);
+  ck_assert (fz_retain (test_ptr) == test_ptr);
   ck_assert (fz_free (test_ptr) == 2);
   ck_assert (fz_free (test_ptr) == 1);
+  ck_assert (fz_retain (NULL) == NULL);
+}
+END_TEST
+
+/* Test for `fz_free'.  */
+START_TEST (test_fz_free)
+{
+  /* `fz_free' is tested in `teardown' and `fz_retain' test as well.  */
+  ck_assert (fz_free (NULL) == -EINVAL);
 }
 END_TEST
 
@@ -111,6 +121,7 @@ malloc_suite_create ()
   tcase_add_checked_fixture (t, setup, teardown);
   tcase_add_test (t, test_fz_realloc);
   tcase_add_test (t, test_fz_retain);
+  tcase_add_test (t, test_fz_free);
   tcase_add_test (t, test_fz_memusage);
   suite_add_tcase (s, t);
   return s;
