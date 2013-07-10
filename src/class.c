@@ -17,7 +17,9 @@
    along with libfreeztile; see the file COPYING.  If not see
    <http://www.gnu.org/licenses/>.  */
 
+#include <errno.h>
 #include "class.h"
+#include "malloc.h"
 
 /* Create an instance of the type represented by the TYPE descriptor.  */
 ptr_t
@@ -30,6 +32,7 @@ fz_new (const class_t *type, ...)
   if (obj == NULL)
     return NULL;
 
+  *((class_t **) obj) = type;
   if (type->construct)
     {
       va_list ap;
@@ -39,4 +42,22 @@ fz_new (const class_t *type, ...)
     }
 
   return obj;
+}
+
+/* Delete an object.  */
+int_t
+fz_del (ptr_t ptr)
+{
+  if (ptr == NULL)
+    return -EINVAL;
+
+  /* Run the destructor if the memory is about to be freed.  */
+  if (fz_refcount (ptr) == 1)
+    {
+      ptr_t (*destructor) (ptr_t) = (*((const class_t **) ptr))->destruct;
+      if (destructor != NULL)
+        destructor (ptr);
+    }
+
+  return fz_free (ptr);
 }

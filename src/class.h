@@ -35,7 +35,7 @@ typedef struct
 } class_t;
 
 extern ptr_t fz_new (const class_t *, ...);
-extern ptr_t fz_del (ptr_t);
+extern int_t fz_del (ptr_t);
 extern size_t fz_len (const ptr_t);
 extern ptr_t fz_clone (const ptr_t);
 extern int_t fz_cmp (const ptr_t, const ptr_t);

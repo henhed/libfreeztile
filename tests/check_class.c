@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <check.h>
+#include <errno.h>
 #include "class.h"
 
 /* Definition of a test class with two integer members.  */
@@ -27,6 +28,12 @@ typedef struct {
   int_t a;
   int_t b;
 } test_class_t;
+
+/* Test class instance instantiated in `setup'.  */
+test_class_t *test_instance = NULL;
+
+/* Flag used to assert destructor invocation.  */
+int_t test_destuctor_called = 0;
 
 /* Test class constructor.  */
 static ptr_t
@@ -38,24 +45,29 @@ test_constructor (ptr_t ptr, va_list *args)
   return self;
 }
 
+/* Test class destructor.   */
+static ptr_t
+test_destructor (ptr_t ptr)
+{
+  test_destuctor_called = 1;
+  return ptr;
+}
+
 /* Test class descriptor.  */
 static const class_t _TEST_ = {
   sizeof (test_class_t),
   test_constructor,
-  NULL,
+  test_destructor,
   NULL,
   NULL,
   NULL
 };
 
-/* Test class instance instantiated in `setup'.  */
-test_class_t *test_instance = NULL;
-
 /* Pre-test hook.  */
 void
 setup ()
 {
-  ck_assert (fz_memusage (0) == 0);
+  ck_assert_int_eq (fz_memusage (0), 0);
   srand (time (0));
   int_t a = rand ();
   int_t b = rand ();
@@ -68,6 +80,8 @@ setup ()
 void
 teardown ()
 {
+  ck_assert (fz_del (test_instance) == 0);
+  ck_assert_int_eq (fz_memusage (0), 0);
 }
 
 /* Test for `fz_new'.  */
@@ -75,6 +89,23 @@ START_TEST (test_fz_new)
 {
   /* `fz_new' is tested in more detail in `setup' and `teardown'.  */
   ck_assert (fz_new (NULL) == NULL);
+}
+END_TEST
+
+/* Test for `fz_del'.  */
+START_TEST (test_fz_del)
+{
+  int_t usage = fz_memusage (0);
+  test_class_t *instance = fz_new (&_TEST_, 0, 0);
+  ck_assert (fz_memusage (0) > usage);
+  (void) fz_retain (instance);
+  test_destuctor_called = 0;
+  ck_assert (fz_del (instance) == 1);
+  ck_assert (test_destuctor_called == 0);
+  ck_assert (fz_del (instance) == 0);
+  ck_assert (test_destuctor_called == 1);
+  ck_assert (fz_memusage (0) == usage);
+  ck_assert (fz_del (NULL) == -EINVAL);
 }
 END_TEST
 
@@ -86,6 +117,7 @@ class_suite_create ()
   TCase *t = tcase_create ("class");
   tcase_add_checked_fixture (t, setup, teardown);
   tcase_add_test (t, test_fz_new);
+  tcase_add_test (t, test_fz_del);
   suite_add_tcase (s, t);
   return s;
 }
