@@ -65,7 +65,7 @@ fz_del (ptr_t ptr)
 
 /* Measure the length of an object.  */
 size_t
-fz_len (ptr_t ptr)
+fz_len (const ptr_t ptr)
 {
   if (ptr == NULL)
     return 0;
@@ -79,7 +79,7 @@ fz_len (ptr_t ptr)
 
 /* Create a clone of the given object.  */
 ptr_t
-fz_clone (ptr_t ptr)
+fz_clone (const ptr_t ptr)
 {
   if (ptr == NULL)
     return NULL;
