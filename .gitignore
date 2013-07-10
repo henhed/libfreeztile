@@ -18,3 +18,4 @@ Makefile.in
 /src/libfreeztile.la
 /src/stamp-h1
 /tests/check_*
+!/tests/check_*.c
