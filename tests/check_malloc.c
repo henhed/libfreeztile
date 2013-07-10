@@ -77,6 +77,18 @@ START_TEST (test_fz_retain)
 }
 END_TEST
 
+/* Test for `fz_refcount'.  */
+START_TEST (tets_fz_refcount)
+{
+  int_t count = fz_refcount (test_ptr);
+  (void) fz_retain (test_ptr);
+  ck_assert (fz_refcount (test_ptr) == count + 1);
+  (void) fz_free (test_ptr);
+  ck_assert (fz_refcount (test_ptr) == count);
+  ck_assert (fz_refcount (NULL) == -EINVAL);
+}
+END_TEST
+
 /* Test for `fz_free'.  */
 START_TEST (test_fz_free)
 {
@@ -121,6 +133,7 @@ malloc_suite_create ()
   tcase_add_checked_fixture (t, setup, teardown);
   tcase_add_test (t, test_fz_realloc);
   tcase_add_test (t, test_fz_retain);
+  tcase_add_test (t, tets_fz_refcount);
   tcase_add_test (t, test_fz_free);
   tcase_add_test (t, test_fz_memusage);
   suite_add_tcase (s, t);

@@ -90,6 +90,16 @@ fz_retain (ptr_t ptr)
   return ptr;
 }
 
+/* Get the value of the reference counter for the given pointer.
+   Returns a negative error code on error.  */
+int_t
+fz_refcount (ptr_t ptr)
+{
+  if (ptr == NULL)
+    return -EINVAL;
+  return (((struct memory_meta *) ptr) - 1)->numref;
+}
+
 /* Free the memory pointed to by PTR if decreasing it's reference
    counter makes it reach zero.  Returns the number of references
    remaining after a decrease or a negative error code on error.  */
