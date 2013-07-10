@@ -53,12 +53,20 @@ test_destructor (ptr_t ptr)
   return ptr;
 }
 
+/* Test class length measurement implementation.  */
+static size_t
+test_length (ptr_t ptr)
+{
+  test_class_t *self = (test_class_t *) ptr;
+  return self->a + self->b;
+}
+
 /* Test class descriptor.  */
 static const class_t _TEST_ = {
   sizeof (test_class_t),
   test_constructor,
   test_destructor,
-  NULL,
+  test_length,
   NULL,
   NULL
 };
@@ -109,6 +117,15 @@ START_TEST (test_fz_del)
 }
 END_TEST
 
+/* Test for `fz_len'.  */
+START_TEST (test_fz_len)
+{
+  size_t length = test_instance->a + test_instance->b;
+  ck_assert (fz_len (test_instance) == length);
+  ck_assert (fz_len (NULL) == 0);
+}
+END_TEST
+
 /* Initiate a class test suite struct.  */
 Suite *
 class_suite_create ()
@@ -118,6 +135,7 @@ class_suite_create ()
   tcase_add_checked_fixture (t, setup, teardown);
   tcase_add_test (t, test_fz_new);
   tcase_add_test (t, test_fz_del);
+  tcase_add_test (t, test_fz_len);
   suite_add_tcase (s, t);
   return s;
 }

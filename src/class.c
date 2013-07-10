@@ -61,3 +61,17 @@ fz_del (ptr_t ptr)
 
   return fz_free (ptr);
 }
+
+/* Measure the length of an object.  */
+size_t
+fz_len (ptr_t ptr)
+{
+  if (ptr == NULL)
+    return 0;
+
+  size_t (*length) (const ptr_t) = (*((const class_t **) ptr))->length;
+  if (length != NULL)
+    return length (ptr);
+
+  return 0;
+}
