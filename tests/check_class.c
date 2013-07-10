@@ -22,11 +22,12 @@
 #include <errno.h>
 #include "class.h"
 
-/* Definition of a test class with two integer members.  */
+/* Definition of a test class with some member variables.  */
 typedef struct {
   class_t *__class;
   int_t a;
   int_t b;
+  int_t *c;
 } test_class_t;
 
 /* Test class instance instantiated in `setup'.  */
@@ -42,6 +43,8 @@ test_constructor (ptr_t ptr, va_list *args)
   test_class_t *self = (test_class_t *) ptr;
   self->a = va_arg (args, int_t);
   self->b = va_arg (args, int_t);
+  self->c = fz_malloc (sizeof (int_t));
+  *self->c = va_arg (args, int_t);
   return self;
 }
 
@@ -49,6 +52,8 @@ test_constructor (ptr_t ptr, va_list *args)
 static ptr_t
 test_destructor (ptr_t ptr)
 {
+  test_class_t *self = (test_class_t *) ptr;
+  fz_free (self->c);
   test_destuctor_called = 1;
   return ptr;
 }
@@ -61,13 +66,24 @@ test_length (ptr_t ptr)
   return self->a + self->b;
 }
 
+/* Test class clone logic.  */
+static ptr_t
+test_clone (const ptr_t self, ptr_t clone)
+{
+  test_class_t *test_class = (test_class_t *) self;
+  test_class_t *test_clone = (test_class_t *) clone;
+  test_clone->c = fz_malloc (sizeof (int_t));
+  (void) memcpy (test_clone->c, test_class->c, sizeof (int_t));
+  return clone;
+}
+
 /* Test class descriptor.  */
 static const class_t _TEST_ = {
   sizeof (test_class_t),
   test_constructor,
   test_destructor,
   test_length,
-  NULL,
+  test_clone,
   NULL
 };
 
@@ -79,9 +95,11 @@ setup ()
   srand (time (0));
   int_t a = rand ();
   int_t b = rand ();
-  test_instance = fz_new (&_TEST_, a, b);
+  int_t c = rand ();
+  test_instance = fz_new (&_TEST_, a, b, c);
   ck_assert (test_instance->a == a);
   ck_assert (test_instance->b == b);
+  ck_assert (*test_instance->c == c);
 }
 
 /* Post-test hook.  */
@@ -126,6 +144,23 @@ START_TEST (test_fz_len)
 }
 END_TEST
 
+/* Test for `fz_clone'.  */
+START_TEST (test_fz_clone)
+{
+  size_t memusage = fz_memusage (0);
+  test_class_t *test_clone = fz_clone (test_instance);
+  ck_assert (test_clone != test_instance);
+  ck_assert (test_clone->a == test_instance->a);
+  ck_assert (test_clone->b == test_instance->b);
+  ck_assert (test_clone->c != test_instance->c);
+  ck_assert (*test_clone->c == *test_instance->c);
+  ck_assert (fz_memusage (0) == memusage * 2);
+  ck_assert (fz_del (test_clone) == 0);
+  ck_assert (fz_memusage (0) == memusage);
+  ck_assert (fz_clone (NULL) == NULL);
+}
+END_TEST
+
 /* Initiate a class test suite struct.  */
 Suite *
 class_suite_create ()
@@ -136,6 +171,7 @@ class_suite_create ()
   tcase_add_test (t, test_fz_new);
   tcase_add_test (t, test_fz_del);
   tcase_add_test (t, test_fz_len);
+  tcase_add_test (t, test_fz_clone);
   suite_add_tcase (s, t);
   return s;
 }

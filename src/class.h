@@ -30,7 +30,7 @@ typedef struct
   ptr_t (*construct) (ptr_t, va_list *);
   ptr_t (*destruct) (ptr_t);
   size_t (*length) (const ptr_t);
-  ptr_t (*clone) (const ptr_t);
+  ptr_t (*clone) (const ptr_t, ptr_t);
   int_t (*compare) (const ptr_t, const ptr_t);
 } class_t;
 

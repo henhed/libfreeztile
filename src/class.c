@@ -18,6 +18,7 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include <errno.h>
+#include <string.h>
 #include "class.h"
 #include "malloc.h"
 
@@ -74,4 +75,23 @@ fz_len (ptr_t ptr)
     return length (ptr);
 
   return 0;
+}
+
+/* Create a clone of the given object.  */
+ptr_t
+fz_clone (ptr_t ptr)
+{
+  if (ptr == NULL)
+    return NULL;
+
+  const class_t *type = (*((const class_t **) ptr));
+  ptr_t clone = fz_malloc (type->size);
+  if (clone == NULL)
+    return NULL;
+
+  (void) memcpy (clone, ptr, type->size);
+  if (type->clone != NULL)
+    clone = type->clone (ptr, clone);
+
+  return clone;
 }
