@@ -77,6 +77,17 @@ test_clone (const ptr_t self, ptr_t clone)
   return clone;
 }
 
+/* Test class compare logic.  */
+static int_t
+test_compare (const ptr_t self, const ptr_t other)
+{
+  test_class_t *test_self = (test_class_t *) self;
+  test_class_t *test_other = (test_class_t *) other;
+  int_t self_value = test_self->a + test_self->b*10;
+  int_t other_value = test_other->a + test_other->b*10;
+  return self_value - other_value;
+}
+
 /* Test class descriptor.  */
 static const class_t _TEST_ = {
   sizeof (test_class_t),
@@ -84,7 +95,7 @@ static const class_t _TEST_ = {
   test_destructor,
   test_length,
   test_clone,
-  NULL
+  test_compare
 };
 
 /* Pre-test hook.  */
@@ -161,6 +172,27 @@ START_TEST (test_fz_clone)
 }
 END_TEST
 
+/* Test for `fz_cmp'.  */
+START_TEST (test_fz_cmp)
+{
+  test_class_t *a = NULL, *b = NULL;
+  ck_assert (fz_cmp (a, b) == 0);
+  a = test_instance;
+  ck_assert (fz_cmp (a, b) > 0);
+  b = a, a = NULL;
+  ck_assert (fz_cmp (a, b) < 0);
+  a = b;
+  ck_assert (fz_cmp (a, b) == 0);
+  b = fz_clone (a);
+  ck_assert (fz_cmp (a, b) == 0);
+  a->a += 1;
+  ck_assert (fz_cmp (a, b) > 0);
+  b->b += 1;
+  ck_assert (fz_cmp (a, b) < 0);
+  fz_del (b);
+}
+END_TEST
+
 /* Initiate a class test suite struct.  */
 Suite *
 class_suite_create ()
@@ -172,6 +204,7 @@ class_suite_create ()
   tcase_add_test (t, test_fz_del);
   tcase_add_test (t, test_fz_len);
   tcase_add_test (t, test_fz_clone);
+  tcase_add_test (t, test_fz_cmp);
   suite_add_tcase (s, t);
   return s;
 }

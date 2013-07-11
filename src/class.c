@@ -95,3 +95,24 @@ fz_clone (const ptr_t ptr)
 
   return clone;
 }
+
+/* Compare two objects.  Return a negative integer if the lhs is smaller
+   than the rhs, a positive integer if the rhs is smaller or zero if
+   they are equal.  */
+int_t
+fz_cmp (const ptr_t a, const ptr_t b)
+{
+  if (a == b)
+    return 0;
+  else if (a == NULL)
+    return -1;
+  else if (b == NULL)
+    return 1;
+
+  const class_t *a_type = (*((const class_t **) a));
+  const class_t *b_type = (*((const class_t **) b));
+  if (a_type == b_type && a_type->compare != NULL)
+    return a_type->compare (a, b);
+
+  return 0;
+}
