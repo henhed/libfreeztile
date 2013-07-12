@@ -21,6 +21,7 @@
 #include <check.h>
 #include <errno.h>
 #include "class.h"
+#include "malloc.h"
 
 /* Definition of a test class with some member variables.  */
 typedef struct {
@@ -41,10 +42,10 @@ static ptr_t
 test_constructor (ptr_t ptr, va_list *args)
 {
   test_class_t *self = (test_class_t *) ptr;
-  self->a = va_arg (args, int_t);
-  self->b = va_arg (args, int_t);
-  self->c = fz_malloc (sizeof (int_t));
-  *self->c = va_arg (args, int_t);
+  self->a = va_arg (*args, int_t);
+  self->b = va_arg (*args, int_t);
+  self->c = (int_t *) fz_malloc (sizeof (int_t));
+  *self->c = va_arg (*args, int_t);
   return self;
 }
 
@@ -72,7 +73,7 @@ test_clone (const ptr_t self, ptr_t clone)
 {
   test_class_t *test_class = (test_class_t *) self;
   test_class_t *test_clone = (test_class_t *) clone;
-  test_clone->c = fz_malloc (sizeof (int_t));
+  test_clone->c = (int_t *) fz_malloc (sizeof (int_t));
   (void) memcpy (test_clone->c, test_class->c, sizeof (int_t));
   return clone;
 }

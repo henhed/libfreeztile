@@ -33,7 +33,7 @@ fz_new (const class_t *type, ...)
   if (obj == NULL)
     return NULL;
 
-  *((class_t **) obj) = type;
+  *((const class_t **) obj) = type;
   if (type->construct)
     {
       va_list ap;
