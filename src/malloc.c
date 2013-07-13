@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <string.h>
 #include <errno.h>
+#include <math.h>
 #include "malloc.h"
 
 /* Keeps track of memory usage for debugging purposes.  */
@@ -52,6 +53,11 @@ fz_realloc (ptr_t ptr, size_t len)
 	{
 	  /* Not sufficent, decrease global counter.  */
 	  _total_disp -= meta->len;
+	  /* Memory that is expanded once is likely to be expanded again
+	     (for instance in a list that is growing) so we allocate some
+	     extra space right away, hopefully reducing the number of calls
+	     to `realloc'.  We increase LEN to the nearest power of 2.  */
+	  len = (size_t) pow (2, ceil (log (len) / log (2)));
 	}
     }
   else

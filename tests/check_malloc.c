@@ -110,12 +110,13 @@ START_TEST (test_fz_memusage)
   /* Reallocing should not change the meta size.  */
   test_ptr = fz_realloc (test_ptr, test_ptr_size * 2);
   ck_assert (fz_memusage (MEMUSAGE_META) == meta_size);
-  ck_assert (fz_memusage (MEMUSAGE_DISP) == test_ptr_size * 2);
+  ck_assert (fz_memusage (MEMUSAGE_DISP) >= test_ptr_size * 2);
 
   /* Reallocing a smaller space should not affect anything.  */
+  usage = fz_memusage (MEMUSAGE_DISP);
   test_ptr = fz_realloc (test_ptr, test_ptr_size);
   ck_assert (fz_memusage (MEMUSAGE_META) == meta_size);
-  ck_assert (fz_memusage (MEMUSAGE_DISP) == test_ptr_size * 2);
+  ck_assert (fz_memusage (MEMUSAGE_DISP) == usage);
 
   /* Make sure different flavors of 'show all' reports the same usage.  */
   usage = fz_memusage (0);

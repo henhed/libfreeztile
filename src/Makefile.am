@@ -4,3 +4,4 @@ libfreeztile_la_SOURCES = \
     config.h defs.h       \
     malloc.h malloc.c     \
     class.h class.c
+libfreeztile_la_LIBADD = -lm
