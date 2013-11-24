@@ -22,10 +22,15 @@
 
 #include "class.h"
 
+__BEGIN_DECLS
+
 typedef struct list_s list_t;
 
 extern int_t fz_insert (list_t *, uint_t, ptr_t);
+extern int_t fz_erase (list_t *, uint_t);
 
 const class_t *vector_c;
+
+__END_DECLS
 
 #endif /* ! FZ_LIST_H */

@@ -61,6 +61,29 @@ START_TEST (test_fz_insert)
 }
 END_TEST
 
+/* Test for `fz_erase'.  */
+START_TEST (test_fz_erase)
+{
+  srand (time (0));
+  size_t i;
+  size_t num_vals = 3;
+  int vals[num_vals];
+  ck_assert (fz_erase (test_vector, 0) == -EINVAL);
+
+  for (i = 0; i < num_vals; ++i)
+    {
+      vals[i] = rand ();
+      fz_insert (test_vector, 0, vals + i);
+    }
+
+  ck_assert (fz_erase (test_vector, num_vals - 1) == num_vals - 1);
+  ck_assert (fz_erase (test_vector, num_vals - 1) == -EINVAL);
+  ck_assert (fz_erase (test_vector, 0) == 0);
+  ck_assert (fz_erase (test_vector, 0) == 0);
+  ck_assert (fz_erase (test_vector, 0) == -EINVAL);
+}
+END_TEST
+
 /* Initiate a list test suite struct.  */
 Suite *
 list_suite_create ()
@@ -69,6 +92,7 @@ list_suite_create ()
   TCase *t = tcase_create ("list");
   tcase_add_checked_fixture (t, setup, teardown);
   tcase_add_test (t, test_fz_insert);
+  tcase_add_test (t, test_fz_erase);
   suite_add_tcase (s, t);
   return s;
 }
