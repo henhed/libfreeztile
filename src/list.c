@@ -31,7 +31,7 @@ struct list_s
   size_t type_size;
   char *type_name;
   int_t (*insert) (list_t *, uint_t, uint_t, ptr_t);
-  int_t (*erase) (list_t *, uint_t);
+  int_t (*erase) (list_t *, uint_t, uint_t);
   ptr_t (*at) (list_t *, uint_t);
 };
 
@@ -49,6 +49,7 @@ list_constructor (ptr_t ptr, va_list *args)
   self->type_size = type_size;
   self->insert = NULL;
   self->erase = NULL;
+  self->at = NULL;
 
   return self;
 }
@@ -86,14 +87,14 @@ fz_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
 
 /* Erase implementation wrapper.  */
 int_t
-fz_erase (list_t *list, uint_t index)
+fz_erase (list_t *list, uint_t index, uint_t num)
 {
-  if (list == NULL || index >= fz_len (list))
+  if (list == NULL || num == 0 || index + num > fz_len (list))
     return -EINVAL;
   else if (list->erase == NULL)
     return -ENOSYS; /* Not implemented.  */
 
-  return list->erase (list, index);
+  return list->erase (list, index, num);
 }
 
 /* Concrete random access list class struct.  */
@@ -144,15 +145,15 @@ vector_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
 
 /* Class `vector_c' implementation of `fz_erase'.  */
 static int_t
-vector_erase (list_t *list, uint_t index)
+vector_erase (list_t *list, uint_t index, uint_t num)
 {
   vector_t *self = (vector_t *) list;
-  --self->length;
+  self->length -= num;
 
   if (index != self->length)
     {
       memmove (self->items + (index * list->type_size),
-	       self->items + ((index + 1) * list->type_size),
+	       self->items + ((index + num) * list->type_size),
 	       (self->length - index) * list->type_size);
     }
 

@@ -97,17 +97,28 @@ END_TEST
 START_TEST (test_fz_erase)
 {
   srand (time (0));
-  int vals[] = {rand (), rand (), rand ()};
-  ck_assert (fz_erase (test_vector, 0) == -EINVAL);
-  fz_insert (test_vector, 0, 3, vals);
-  ck_assert (fz_erase (test_vector, 2) == 2);
-  ck_assert (fz_erase (test_vector, 2) == -EINVAL);
-  ck_assert (*((int *) fz_at (test_vector, 0)) == vals[0]);
-  ck_assert (fz_erase (test_vector, 0) == 0);
-  ck_assert (*((int *) fz_at (test_vector, 0)) == vals[1]);
-  ck_assert (fz_erase (test_vector, 0) == 0);
-  ck_assert (fz_at (test_vector, 0) == NULL);
-  ck_assert (fz_erase (test_vector, 0) == -EINVAL);
+  int vals[] = {rand (), rand (), rand (), rand (), rand ()};
+  ck_assert (fz_erase (test_vector, 0, 0) == -EINVAL);
+  ck_assert (fz_erase (test_vector, 0, 1) == -EINVAL);
+  fz_insert (test_vector, 0, 5, vals);
+
+  /* Test erasing multiple items.  */
+  ck_assert (fz_erase (test_vector, 1, 3) == 1);
+  ck_assert_int_eq (*((int *) fz_at (test_vector, 0)), vals[0]);
+  ck_assert_int_eq (*((int *) fz_at (test_vector, 1)), vals[4]);
+  ck_assert (fz_len (test_vector) == 2);
+
+  /* Test erasing past end.  */
+  ck_assert (fz_erase (test_vector, fz_len (test_vector), 1) == -EINVAL);
+  ck_assert (fz_len (test_vector) == 2);
+
+  /* Test erasing too many items.  */
+  ck_assert (fz_erase (test_vector, 1, fz_len (test_vector)) == -EINVAL);
+  ck_assert (fz_len (test_vector) == 2);
+
+  /* Test erasing at end.  */
+  ck_assert (fz_erase (test_vector, 1, 1) == 1);
+  ck_assert (fz_len (test_vector) == 1);
 }
 END_TEST
 
