@@ -59,15 +59,37 @@ START_TEST (test_fz_insert)
   int vals[num_vals];
   ck_assert (fz_len (test_vector) == 0);
 
+  /* Test inserting single values.  */
   for (i = 0; i < num_vals; ++i)
     {
       vals[i] = rand ();
-      fz_insert (test_vector, 0, vals + i);
+      fz_insert (test_vector, 0, 1, vals + i);
       ck_assert (*((int *) fz_at (test_vector, 0)) == vals[i]);
       ck_assert (fz_len (test_vector) == i + 1);
     }
 
-  ck_assert (fz_insert (test_vector, 0, NULL) == -EINVAL);
+  ck_assert (fz_insert (test_vector, 0, 1, NULL) == -EINVAL);
+
+  /* Test inserting multiple values at some offset.  */
+  fz_insert (test_vector, 5, 10, vals);
+  for (i = 0; i < 10; ++i)
+    {
+      ck_assert_int_eq (*((int *) fz_at (test_vector, i + 5)), vals[i]);
+    }
+  ck_assert_int_eq (fz_len (test_vector), num_vals + 10);
+
+  /* Test inserting at end.  */
+  fz_insert (test_vector, fz_len (test_vector), 1, vals);
+  ck_assert_int_eq (*((int *) fz_at (test_vector, fz_len (test_vector) - 1)),
+		    vals[0]);
+  ck_assert_int_eq (fz_len (test_vector), num_vals + 11);
+
+  /* Test inserting past end.  */
+  ck_assert (fz_insert (test_vector,
+			fz_len (test_vector) + 1,
+			1,
+			vals) == -EINVAL);
+  ck_assert_int_eq (fz_len (test_vector), num_vals + 11);
 }
 END_TEST
 
@@ -75,20 +97,12 @@ END_TEST
 START_TEST (test_fz_erase)
 {
   srand (time (0));
-  size_t i;
-  size_t num_vals = 3;
-  int vals[num_vals];
+  int vals[] = {rand (), rand (), rand ()};
   ck_assert (fz_erase (test_vector, 0) == -EINVAL);
-
-  for (i = 0; i < num_vals; ++i)
-    {
-      vals[i] = rand ();
-      fz_insert (test_vector, 0, vals + i);
-    }
-
-  ck_assert (fz_erase (test_vector, num_vals - 1) == num_vals - 1);
-  ck_assert (fz_erase (test_vector, num_vals - 1) == -EINVAL);
-  ck_assert (*((int *) fz_at (test_vector, 0)) == vals[2]);
+  fz_insert (test_vector, 0, 3, vals);
+  ck_assert (fz_erase (test_vector, 2) == 2);
+  ck_assert (fz_erase (test_vector, 2) == -EINVAL);
+  ck_assert (*((int *) fz_at (test_vector, 0)) == vals[0]);
   ck_assert (fz_erase (test_vector, 0) == 0);
   ck_assert (*((int *) fz_at (test_vector, 0)) == vals[1]);
   ck_assert (fz_erase (test_vector, 0) == 0);

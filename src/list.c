@@ -30,7 +30,7 @@ struct list_s
   const class_t *__class;
   size_t type_size;
   char *type_name;
-  int_t (*insert) (list_t *, uint_t, ptr_t);
+  int_t (*insert) (list_t *, uint_t, uint_t, ptr_t);
   int_t (*erase) (list_t *, uint_t);
   ptr_t (*at) (list_t *, uint_t);
 };
@@ -74,14 +74,14 @@ fz_at (list_t *list, uint_t index)
 
 /* Insert concrete implementation wrapper.  */
 int_t
-fz_insert (list_t *list, uint_t index, ptr_t item)
+fz_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
 {
-  if (list == NULL || item == NULL || index > fz_len (list))
+  if (list == NULL || num == 0 || item == NULL || index > fz_len (list))
     return -EINVAL;
   else if (list->insert == NULL)
     return -ENOSYS; /* Not implemented.  */
 
-  return list->insert (list, index, item);
+  return list->insert (list, index, num, item);
 }
 
 /* Erase implementation wrapper.  */
@@ -122,21 +122,21 @@ vector_at (list_t *list, uint_t index)
 
 /* Class `vector_c' implementation of `fz_insert'.  */
 static int_t
-vector_insert (list_t *list, uint_t index, ptr_t item)
+vector_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
 {
   vector_t *self = (vector_t *) list;
-  size_t length = self->length + 1;
+  size_t length = self->length + num;
   /* We rely on the general allocation growth policy.  */
   self->items = fz_realloc (self->items, length * list->type_size);
 
   if (index != self->length)
     {
-      memmove (self->items + ((index + 1) * list->type_size),
+      memmove (self->items + ((index + num) * list->type_size),
 	       self->items + (index * list->type_size),
 	       (self->length - index) * list->type_size);
     }
 
-  memcpy (self->items + (index * list->type_size), item, list->type_size);
+  memcpy (self->items + (index * list->type_size), item, list->type_size * num);
   self->length = length;
 
   return index;
