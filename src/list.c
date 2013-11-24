@@ -32,6 +32,7 @@ struct list_s
   char *type_name;
   int_t (*insert) (list_t *, uint_t, ptr_t);
   int_t (*erase) (list_t *, uint_t);
+  ptr_t (*at) (list_t *, uint_t);
 };
 
 /* Abstract list constuctor.  */
@@ -59,6 +60,16 @@ list_destructor (ptr_t ptr)
   list_t *self = (list_t *) ptr;
   fz_free (self->type_name);
   return self;
+}
+
+/* Abstract list item getter.  */
+ptr_t
+fz_at (list_t *list, uint_t index)
+{
+  if (list == NULL || list->at == NULL || index >= fz_len (list))
+    return NULL;
+
+  return list->at (list, index);
 }
 
 /* Insert concrete implementation wrapper.  */
@@ -99,6 +110,14 @@ vector_length (const ptr_t list)
 {
   /* `fz_len' makes a NULL pointer check.  */
   return ((const vector_t *) list)->length;
+}
+
+/* Class `vector_c' implementation of `fz_at'.  */
+static ptr_t
+vector_at (list_t *list, uint_t index)
+{
+  vector_t *self = (vector_t *) list;
+  return self->items + (index * list->type_size);
 }
 
 /* Class `vector_c' implementation of `fz_insert'.  */
@@ -150,6 +169,7 @@ vector_constructor (ptr_t ptr, va_list *args)
   list_t *parent = (list_t *) self;
   parent->insert = vector_insert;
   parent->erase = vector_erase;
+  parent->at = vector_at;
   return self;
 }
 

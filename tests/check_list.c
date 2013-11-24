@@ -41,6 +41,15 @@ teardown ()
   ck_assert_int_eq (fz_memusage (0), 0);
 }
 
+/* Test for `fz_at'.  */
+START_TEST (test_fz_at)
+{
+  ck_assert (fz_at (NULL, 0) == NULL);
+  ck_assert (fz_at (test_vector, 0) == NULL);
+  /* More assertions in tests below.  */
+}
+END_TEST
+
 /* Test for `fz_insert'.  */
 START_TEST (test_fz_insert)
 {
@@ -54,6 +63,7 @@ START_TEST (test_fz_insert)
     {
       vals[i] = rand ();
       fz_insert (test_vector, 0, vals + i);
+      ck_assert (*((int *) fz_at (test_vector, 0)) == vals[i]);
       ck_assert (fz_len (test_vector) == i + 1);
     }
 
@@ -78,8 +88,11 @@ START_TEST (test_fz_erase)
 
   ck_assert (fz_erase (test_vector, num_vals - 1) == num_vals - 1);
   ck_assert (fz_erase (test_vector, num_vals - 1) == -EINVAL);
+  ck_assert (*((int *) fz_at (test_vector, 0)) == vals[2]);
   ck_assert (fz_erase (test_vector, 0) == 0);
+  ck_assert (*((int *) fz_at (test_vector, 0)) == vals[1]);
   ck_assert (fz_erase (test_vector, 0) == 0);
+  ck_assert (fz_at (test_vector, 0) == NULL);
   ck_assert (fz_erase (test_vector, 0) == -EINVAL);
 }
 END_TEST
@@ -91,6 +104,7 @@ list_suite_create ()
   Suite *s = suite_create ("list");
   TCase *t = tcase_create ("list");
   tcase_add_checked_fixture (t, setup, teardown);
+  tcase_add_test (t, test_fz_at);
   tcase_add_test (t, test_fz_insert);
   tcase_add_test (t, test_fz_erase);
   suite_add_tcase (s, t);

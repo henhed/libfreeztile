@@ -26,6 +26,7 @@ __BEGIN_DECLS
 
 typedef struct list_s list_t;
 
+extern ptr_t fz_at (list_t *, uint_t);
 extern int_t fz_insert (list_t *, uint_t, ptr_t);
 extern int_t fz_erase (list_t *, uint_t);
 
