@@ -23,6 +23,8 @@
 #include <stdarg.h>
 #include "defs.h"
 
+__BEGIN_DECLS
+
 /* Class descriptor struct.  */
 typedef struct
 {
@@ -39,5 +41,7 @@ extern int_t fz_del (ptr_t);
 extern size_t fz_len (const ptr_t);
 extern ptr_t fz_clone (const ptr_t);
 extern int_t fz_cmp (const ptr_t, const ptr_t);
+
+__END_DECLS
 
 #endif /* ! FZ_CLASS_H */

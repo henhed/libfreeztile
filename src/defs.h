@@ -37,6 +37,7 @@
 /* Define some types.  */
 typedef void * ptr_t;
 typedef double real_t;
+typedef unsigned long long int flags_t;
 
 #ifdef HAVE_INTTYPES_H
 # include <inttypes.h>
@@ -61,9 +62,10 @@ typedef bool _Bool;
 #   define _Bool signed char
 #  endif
 # endif
-# define bool_t _Bool
-# define FALSE 0
-# define TRUE 1
 #endif
+
+#define bool_t _Bool
+#define FALSE 0
+#define TRUE 1
 
 #endif /* ! FZ_DEFS_H */

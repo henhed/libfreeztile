@@ -26,11 +26,29 @@ __BEGIN_DECLS
 
 typedef struct list_s list_t;
 
+#define fz_at_ref (list, index, type) \
+  ((type *) fz_at (list, index))
+
+#define fz_at_val (list, index, type) \
+  (*((type *) fz_at (list, index)))
+
+#define fz_insert_one (list, index, item) \
+  fz_insert (list, index, 1, item)
+
+#define fz_push (list, num, item) \
+  fz_insert (list, fz_len (list), num, item)
+
+#define fz_push_one (list, item) \
+  fz_insert (list, fz_len (list), 1, item)
+
+#define fz_erase_one (list, index) \
+  fz_erase (list, index, 1)
+
 extern ptr_t fz_at (list_t *, uint_t);
 extern int_t fz_insert (list_t *, uint_t, uint_t, ptr_t);
 extern int_t fz_erase (list_t *, uint_t, uint_t);
 
-const class_t *vector_c;
+extern const class_t *vector_c;
 
 __END_DECLS
 
