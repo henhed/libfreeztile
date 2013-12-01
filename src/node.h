@@ -26,6 +26,9 @@ __BEGIN_DECLS
 
 typedef struct node_s node_t;
 
+extern int_t fz_node_fork (node_t *, node_t *);
+extern int_t fz_node_join (node_t *, node_t *);
+
 extern const class_t *node_c;
 
 __END_DECLS
