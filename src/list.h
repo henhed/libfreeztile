@@ -26,8 +26,11 @@ __BEGIN_DECLS
 
 typedef struct list_s list_t;
 
+#define LISTOPT_NONE 0
+#define LISTOPT_PTRS (1 << 0)
+
 #define fz_new_vector(type) \
-  fz_new (vector_c, sizeof (type), #type)
+  fz_new (vector_c, sizeof (type), #type, LISTOPT_NONE)
 
 #define fz_at_ref(list, index, type) \
   ((type *) fz_at (list, index))

@@ -30,7 +30,7 @@ void
 setup ()
 {
   ck_assert_int_eq (fz_memusage (0), 0);
-  test_vector = fz_new (vector_c, sizeof (int), "int");
+  test_vector = fz_new (vector_c, sizeof (int), "int", LISTOPT_NONE);
 }
 
 /* Post-test hook.  */
@@ -122,6 +122,37 @@ START_TEST (test_fz_erase)
 }
 END_TEST
 
+/* Test for `list_c' option LISTOPT_PTRS.  */
+START_TEST (test_listopt_ptrs)
+{
+  /* Test normal behavior.  */
+  list_t *list = fz_new (vector_c,
+			 sizeof (ptr_t),
+			 "ptr_t",
+			 LISTOPT_NONE);
+  ck_assert (list != NULL);
+
+  fz_insert (list, 0, 1, &test_vector);
+  ck_assert (*((ptr_t *) fz_at (list, 0)) == test_vector);
+  fz_insert (list, 1, 1, test_vector);
+  ck_assert (fz_at (list, 1) != test_vector);
+
+  ck_assert (fz_del (list) == 0);
+
+  /* Test pointer storage behavior.  */
+  list = fz_new (vector_c,
+		 sizeof (ptr_t),
+		 "ptr_t",
+		 LISTOPT_PTRS);
+  ck_assert (list != NULL);
+
+  fz_insert (list, 0, 1, test_vector);
+  ck_assert (fz_at (list, 0) == test_vector);
+
+  ck_assert (fz_del (list) == 0);
+}
+END_TEST
+
 /* Initiate a list test suite struct.  */
 Suite *
 list_suite_create ()
@@ -132,6 +163,7 @@ list_suite_create ()
   tcase_add_test (t, test_fz_at);
   tcase_add_test (t, test_fz_insert);
   tcase_add_test (t, test_fz_erase);
+  tcase_add_test (t, test_listopt_ptrs);
   suite_add_tcase (s, t);
   return s;
 }

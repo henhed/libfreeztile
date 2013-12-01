@@ -30,6 +30,7 @@ struct list_s
   const class_t *__class;
   size_t type_size;
   char *type_name;
+  flags_t flags;
   int_t (*insert) (list_t *, uint_t, uint_t, ptr_t);
   int_t (*erase) (list_t *, uint_t, uint_t);
   ptr_t (*at) (list_t *, uint_t);
@@ -42,11 +43,13 @@ list_constructor (ptr_t ptr, va_list *args)
   list_t *self = (list_t *) ptr;
   size_t type_size = va_arg (*args, size_t);
   const char *type_name = va_arg (*args, char *);
+  flags_t flags = va_arg (*args, flags_t);
 
   self->type_name = (char *) fz_malloc (sizeof (char) *
 					(strlen (type_name) + 1));
   strcpy (self->type_name, type_name);
   self->type_size = type_size;
+  self->flags = flags;
   self->insert = NULL;
   self->erase = NULL;
   self->at = NULL;
@@ -70,7 +73,10 @@ fz_at (list_t *list, uint_t index)
   if (list == NULL || list->at == NULL || index >= fz_len (list))
     return NULL;
 
-  return list->at (list, index);
+  if (list->flags & LISTOPT_PTRS)
+    return *((ptr_t *) list->at (list, index));
+  else
+    return list->at (list, index);
 }
 
 /* Insert concrete implementation wrapper.  */
@@ -82,7 +88,10 @@ fz_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
   else if (list->insert == NULL)
     return -ENOSYS; /* Not implemented.  */
 
-  return list->insert (list, index, num, item);
+  if (list->flags & LISTOPT_PTRS)
+    return list->insert (list, index, num, &item);
+  else
+    return list->insert (list, index, num, item);
 }
 
 /* Erase implementation wrapper.  */
