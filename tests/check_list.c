@@ -153,6 +153,57 @@ START_TEST (test_listopt_ptrs)
 }
 END_TEST
 
+/* Test for `list_c' option LISTOPT_KEEP.  */
+START_TEST (test_listopt_keep)
+{
+  /* Test normal behavior.  */
+  list_t *list = fz_new (vector_c,
+			 sizeof (ptr_t),
+			 "ptr_t",
+			 LISTOPT_PTRS);
+  list_t *object = fz_new (vector_c,
+			 sizeof (int_t),
+			 "int_t",
+			 LISTOPT_NONE);
+  ck_assert (list != NULL && object != NULL);
+
+  fz_insert (list, 0, 1, object);
+  size_t memusage = fz_memusage (0);
+  fz_del (object);
+  ck_assert (fz_memusage (0) < memusage);
+  fz_del (list);
+
+  /* Test retaining behavior.  */
+  list = fz_new (vector_c,
+		 sizeof (ptr_t),
+		 "ptr_t",
+		 LISTOPT_PTRS | LISTOPT_KEEP);
+  object = fz_new (vector_c,
+		   sizeof (int_t),
+		   "int_t",
+		   LISTOPT_NONE);
+  ck_assert (list != NULL && object != NULL);
+
+  fz_insert (list, 0, 1, object);
+  memusage = fz_memusage (0);
+  fz_del (object);
+  ck_assert (fz_memusage (0) == memusage);
+  fz_erase (list, 0, 1);
+  ck_assert (fz_memusage (0) < memusage);
+
+  object = fz_new (vector_c,
+		   sizeof (int_t),
+		   "int_t",
+		   LISTOPT_NONE);
+  fz_insert (list, 0, 1, object);
+  memusage = fz_memusage (0);
+  fz_del (object);
+  ck_assert (fz_memusage (0) == memusage);
+  fz_del (list);
+  /* `teardown' makes a final memusage test.  */
+}
+END_TEST
+
 /* Initiate a list test suite struct.  */
 Suite *
 list_suite_create ()
@@ -164,6 +215,7 @@ list_suite_create ()
   tcase_add_test (t, test_fz_insert);
   tcase_add_test (t, test_fz_erase);
   tcase_add_test (t, test_listopt_ptrs);
+  tcase_add_test (t, test_listopt_keep);
   suite_add_tcase (s, t);
   return s;
 }

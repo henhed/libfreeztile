@@ -62,6 +62,17 @@ static ptr_t
 list_destructor (ptr_t ptr)
 {
   list_t *self = (list_t *) ptr;
+  flags_t delete = LISTOPT_PTRS | LISTOPT_KEEP;
+  uint_t i;
+  size_t len;
+
+  if ((self->flags & delete) == delete)
+    {
+      len = fz_len (self);
+      for (i = 0; i < len; ++i)
+        fz_del (fz_at (self, i));
+    }
+
   fz_free (self->type_name);
   return self;
 }
@@ -83,25 +94,39 @@ fz_at (list_t *list, uint_t index)
 int_t
 fz_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
 {
+  int_t err;
+
   if (list == NULL || num == 0 || item == NULL || index > fz_len (list))
     return -EINVAL;
   else if (list->insert == NULL)
     return -ENOSYS; /* Not implemented.  */
 
   if (list->flags & LISTOPT_PTRS)
-    return list->insert (list, index, num, &item);
+    {
+      err = list->insert (list, index, num, &item);
+      if (err >= 0 && (list->flags & LISTOPT_KEEP))
+        fz_retain (item);
+    }
   else
-    return list->insert (list, index, num, item);
+    err = list->insert (list, index, num, item);
+
+  return err;
 }
 
 /* Erase implementation wrapper.  */
 int_t
 fz_erase (list_t *list, uint_t index, uint_t num)
 {
+  flags_t delete;
+
   if (list == NULL || num == 0 || index + num > fz_len (list))
     return -EINVAL;
   else if (list->erase == NULL)
     return -ENOSYS; /* Not implemented.  */
+
+  delete = LISTOPT_PTRS | LISTOPT_KEEP;
+  if ((list->flags & delete) == delete)
+    fz_del (fz_at (list, index));
 
   return list->erase (list, index, num);
 }
