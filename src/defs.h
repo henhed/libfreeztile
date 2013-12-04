@@ -68,6 +68,6 @@ typedef bool _Bool;
 #define FALSE 0
 #define TRUE 1
 
-typedef int_t (*cmp_f) (ptr_t, ptr_t);
+typedef int_t (*cmp_f) (const ptr_t, const ptr_t);
 
 #endif /* ! FZ_DEFS_H */

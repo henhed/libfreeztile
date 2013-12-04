@@ -28,7 +28,8 @@ typedef struct list_s list_t;
 
 #define LISTOPT_NONE 0
 #define LISTOPT_PTRS (1 << 0)
-#define LISTOPT_KEEP (1 << 1)
+#define LISTOPT_KEEP ((1 << 1) | LISTOPT_PTRS)
+#define LISTOPT_PASS ((1 << 2) | LISTOPT_PTRS)
 
 #define fz_new_vector(type) \
   fz_new (vector_c, sizeof (type), #type, LISTOPT_NONE)
@@ -54,11 +55,11 @@ typedef struct list_s list_t;
 extern ptr_t fz_at (list_t *, uint_t);
 extern int_t fz_insert (list_t *, uint_t, uint_t, ptr_t);
 extern int_t fz_erase (list_t *, uint_t, uint_t);
-extern int_t fz_index_of (list_t *, ptr_t, cmp_f);
+extern int_t fz_index_of (list_t *, const ptr_t, cmp_f);
 
-extern int_t fz_cmp_ptr (ptr_t, ptr_t);
-extern int_t fz_cmp_int (ptr_t, ptr_t);
-extern int_t fz_cmp_real (ptr_t, ptr_t);
+extern int_t fz_cmp_ptr (const ptr_t, const ptr_t);
+extern int_t fz_cmp_int (const ptr_t, const ptr_t);
+extern int_t fz_cmp_real (const ptr_t, const ptr_t);
 
 extern const class_t *vector_c;
 

@@ -62,11 +62,11 @@ static ptr_t
 list_destructor (ptr_t ptr)
 {
   list_t *self = (list_t *) ptr;
-  flags_t delete = LISTOPT_PTRS | LISTOPT_KEEP;
   uint_t i;
   size_t len;
 
-  if ((self->flags & delete) == delete)
+  if ((self->flags & LISTOPT_KEEP) == LISTOPT_KEEP
+      || (self->flags & LISTOPT_PASS) == LISTOPT_PASS)
     {
       len = fz_len (self);
       for (i = 0; i < len; ++i)
@@ -95,16 +95,23 @@ int_t
 fz_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
 {
   int_t err;
+  bool_t can_retain = FALSE;
 
-  if (list == NULL || num == 0 || item == NULL || index > fz_len (list))
+  if (list == NULL || num == 0 || item == NULL
+      || item == list || index > fz_len (list))
     return -EINVAL;
   else if (list->insert == NULL)
     return -ENOSYS; /* Not implemented.  */
 
   if (list->flags & LISTOPT_PTRS)
     {
+      if ((list->flags & LISTOPT_KEEP) == LISTOPT_KEEP
+          || ((list->flags & LISTOPT_PASS) == LISTOPT_PASS
+              && fz_index_of (list, item, fz_cmp_ptr) >= 0))
+        can_retain = TRUE;
+
       err = list->insert (list, index, num, &item);
-      if (err >= 0 && (list->flags & LISTOPT_KEEP))
+      if (can_retain == TRUE && err >= 0)
         fz_retain (item);
     }
   else
@@ -117,15 +124,13 @@ fz_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
 int_t
 fz_erase (list_t *list, uint_t index, uint_t num)
 {
-  flags_t delete;
-
   if (list == NULL || num == 0 || index + num > fz_len (list))
     return -EINVAL;
   else if (list->erase == NULL)
     return -ENOSYS; /* Not implemented.  */
 
-  delete = LISTOPT_PTRS | LISTOPT_KEEP;
-  if ((list->flags & delete) == delete)
+  if ((list->flags & LISTOPT_KEEP) == LISTOPT_KEEP
+      || (list->flags & LISTOPT_PASS) == LISTOPT_PASS)
     fz_del (fz_at (list, index));
 
   return list->erase (list, index, num);
@@ -133,7 +138,7 @@ fz_erase (list_t *list, uint_t index, uint_t num)
 
 /* Find the first occurance of ITEM in LIST.  */
 int_t
-fz_index_of (list_t *list, ptr_t item, cmp_f compare)
+fz_index_of (list_t *list, const ptr_t item, cmp_f compare)
 {
   uint_t i;
   size_t len;
@@ -154,7 +159,7 @@ fz_index_of (list_t *list, ptr_t item, cmp_f compare)
 
 /* Comparator functions for search and sort.  */
 int_t
-fz_cmp_ptr (ptr_t a, ptr_t b)
+fz_cmp_ptr (const ptr_t a, const ptr_t b)
 {
   if (a == b)
     return 0;
@@ -164,13 +169,13 @@ fz_cmp_ptr (ptr_t a, ptr_t b)
 }
 
 int_t
-fz_cmp_int (ptr_t a, ptr_t b)
+fz_cmp_int (const ptr_t a, const ptr_t b)
 {
   return *((int_t *) a) - *((int_t *) b);
 }
 
 int_t
-fz_cmp_real (ptr_t a, ptr_t b)
+fz_cmp_real (const ptr_t a, const ptr_t b)
 {
   return *((real_t *) a) - *((real_t *) b);
 }

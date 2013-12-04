@@ -90,6 +90,9 @@ START_TEST (test_fz_insert)
 			1,
 			vals) == -EINVAL);
   ck_assert_int_eq (fz_len (test_vector), num_vals + 11);
+
+  /* Test inserting a list into itself.  */
+  ck_assert (fz_insert (test_vector, 0, 1, test_vector) == -EINVAL);
 }
 END_TEST
 
@@ -119,6 +122,57 @@ START_TEST (test_fz_erase)
   /* Test erasing at end.  */
   ck_assert (fz_erase (test_vector, 1, 1) == 1);
   ck_assert (fz_len (test_vector) == 1);
+}
+END_TEST
+
+/* Test for `fz_index_of'.  */
+START_TEST (test_fz_index_of)
+{
+  /* Test searching for numbers.  */
+  int_t first = 1;
+  int_t second = 2;
+  int_t third = 3;
+  int_t fourth = 4;
+  fz_insert (test_vector, 0, 1, &first);
+  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 0);
+  fz_insert (test_vector, 0, 1, &second);
+  ck_assert (fz_index_of (test_vector, &second, fz_cmp_int) == 0);
+  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 1);
+  fz_insert (test_vector, 0, 1, &third);
+  ck_assert (fz_index_of (test_vector, &third, fz_cmp_int) == 0);
+  ck_assert (fz_index_of (test_vector, &second, fz_cmp_int) == 1);
+  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 2);
+  fz_insert (test_vector, 0, 1, &first);
+  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 0);
+  ck_assert (fz_index_of (test_vector, &third, fz_cmp_int) == 1);
+  ck_assert (fz_index_of (test_vector, &second, fz_cmp_int) == 2);
+  ck_assert (fz_index_of (test_vector, &fourth, fz_cmp_int) < 0);
+
+  /* Test searching for pointers.  */
+  list_t *list = fz_new (vector_c,
+			 sizeof (ptr_t),
+			 "ptr_t",
+			 LISTOPT_PTRS);
+  list_t *ptr1 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
+  list_t *ptr2 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
+  list_t *ptr3 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
+  fz_insert (list, 0, 1, ptr1);
+  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 0);
+  fz_insert (list, 0, 1, ptr2);
+  ck_assert (fz_index_of (list, ptr2, fz_cmp_ptr) == 0);
+  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 1);
+  fz_insert (list, 0, 1, ptr3);
+  ck_assert (fz_index_of (list, ptr3, fz_cmp_ptr) == 0);
+  ck_assert (fz_index_of (list, ptr2, fz_cmp_ptr) == 1);
+  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 2);
+  fz_insert (list, 0, 1, ptr1);
+  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 0);
+  ck_assert (fz_index_of (list, ptr3, fz_cmp_ptr) == 1);
+  ck_assert (fz_index_of (list, ptr2, fz_cmp_ptr) == 2);
+  fz_del (ptr3);
+  fz_del (ptr2);
+  fz_del (ptr1);
+  fz_del (list);
 }
 END_TEST
 
@@ -177,7 +231,7 @@ START_TEST (test_listopt_keep)
   list = fz_new (vector_c,
 		 sizeof (ptr_t),
 		 "ptr_t",
-		 LISTOPT_PTRS | LISTOPT_KEEP);
+		 LISTOPT_KEEP);
   object = fz_new (vector_c,
 		   sizeof (int_t),
 		   "int_t",
@@ -204,54 +258,23 @@ START_TEST (test_listopt_keep)
 }
 END_TEST
 
-/* Test for `fz_index_of'.  */
-START_TEST (test_fz_index_of)
+/* Test for `list_c' option LISTOPT_PASS.  */
+START_TEST (test_listopt_pass)
 {
-  /* Test searching for numbers.  */
-  int_t first = 1;
-  int_t second = 2;
-  int_t third = 3;
-  int_t fourth = 4;
-  fz_insert (test_vector, 0, 1, &first);
-  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 0);
-  fz_insert (test_vector, 0, 1, &second);
-  ck_assert (fz_index_of (test_vector, &second, fz_cmp_int) == 0);
-  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 1);
-  fz_insert (test_vector, 0, 1, &third);
-  ck_assert (fz_index_of (test_vector, &third, fz_cmp_int) == 0);
-  ck_assert (fz_index_of (test_vector, &second, fz_cmp_int) == 1);
-  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 2);
-  fz_insert (test_vector, 0, 1, &first);
-  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 0);
-  ck_assert (fz_index_of (test_vector, &third, fz_cmp_int) == 1);
-  ck_assert (fz_index_of (test_vector, &second, fz_cmp_int) == 2);
-  ck_assert (fz_index_of (test_vector, &fourth, fz_cmp_int) < 0);
-
-  /* Test searching for pointers.  */
   list_t *list = fz_new (vector_c,
-			 sizeof (ptr_t),
-			 "ptr_t",
-			 LISTOPT_PTRS);
-  list_t *ptr1 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
-  list_t *ptr2 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
-  list_t *ptr3 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
-  fz_insert (list, 0, 1, ptr1);
-  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 0);
-  fz_insert (list, 0, 1, ptr2);
-  ck_assert (fz_index_of (list, ptr2, fz_cmp_ptr) == 0);
-  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 1);
-  fz_insert (list, 0, 1, ptr3);
-  ck_assert (fz_index_of (list, ptr3, fz_cmp_ptr) == 0);
-  ck_assert (fz_index_of (list, ptr2, fz_cmp_ptr) == 1);
-  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 2);
-  fz_insert (list, 0, 1, ptr1);
-  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 0);
-  ck_assert (fz_index_of (list, ptr3, fz_cmp_ptr) == 1);
-  ck_assert (fz_index_of (list, ptr2, fz_cmp_ptr) == 2);
-  fz_del (ptr3);
-  fz_del (ptr2);
-  fz_del (ptr1);
+                         sizeof (ptr_t),
+                         "ptr_t",
+                         LISTOPT_PASS);
+  fz_insert (list, 0, 1,
+             fz_new (vector_c,
+                     sizeof (int_t),
+                     "int_t",
+                     LISTOPT_NONE));
+  fz_insert (list, 1, 1, fz_at (list, 0));
+  fz_insert (list, 2, 1, fz_at (list, 1));
+  fz_erase (list, 0, 1);
   fz_del (list);
+  /* `teardown' checks if the list item has been freed.  */
 }
 END_TEST
 
@@ -265,9 +288,10 @@ list_suite_create ()
   tcase_add_test (t, test_fz_at);
   tcase_add_test (t, test_fz_insert);
   tcase_add_test (t, test_fz_erase);
+  tcase_add_test (t, test_fz_index_of);
   tcase_add_test (t, test_listopt_ptrs);
   tcase_add_test (t, test_listopt_keep);
-  tcase_add_test (t, test_fz_index_of);
+  tcase_add_test (t, test_listopt_pass);
   suite_add_tcase (s, t);
   return s;
 }
