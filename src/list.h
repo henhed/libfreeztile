@@ -54,9 +54,15 @@ typedef struct list_s list_t;
 extern ptr_t fz_at (list_t *, uint_t);
 extern int_t fz_insert (list_t *, uint_t, uint_t, ptr_t);
 extern int_t fz_erase (list_t *, uint_t, uint_t);
+extern int_t fz_index_of (list_t *, ptr_t, cmp_f);
+
+extern int_t fz_cmp_ptr (ptr_t, ptr_t);
+extern int_t fz_cmp_int (ptr_t, ptr_t);
+extern int_t fz_cmp_real (ptr_t, ptr_t);
 
 extern const class_t *vector_c;
 
 __END_DECLS
 
 #endif /* ! FZ_LIST_H */
+

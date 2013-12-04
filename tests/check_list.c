@@ -204,6 +204,57 @@ START_TEST (test_listopt_keep)
 }
 END_TEST
 
+/* Test for `fz_index_of'.  */
+START_TEST (test_fz_index_of)
+{
+  /* Test searching for numbers.  */
+  int_t first = 1;
+  int_t second = 2;
+  int_t third = 3;
+  int_t fourth = 4;
+  fz_insert (test_vector, 0, 1, &first);
+  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 0);
+  fz_insert (test_vector, 0, 1, &second);
+  ck_assert (fz_index_of (test_vector, &second, fz_cmp_int) == 0);
+  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 1);
+  fz_insert (test_vector, 0, 1, &third);
+  ck_assert (fz_index_of (test_vector, &third, fz_cmp_int) == 0);
+  ck_assert (fz_index_of (test_vector, &second, fz_cmp_int) == 1);
+  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 2);
+  fz_insert (test_vector, 0, 1, &first);
+  ck_assert (fz_index_of (test_vector, &first, fz_cmp_int) == 0);
+  ck_assert (fz_index_of (test_vector, &third, fz_cmp_int) == 1);
+  ck_assert (fz_index_of (test_vector, &second, fz_cmp_int) == 2);
+  ck_assert (fz_index_of (test_vector, &fourth, fz_cmp_int) < 0);
+
+  /* Test searching for pointers.  */
+  list_t *list = fz_new (vector_c,
+			 sizeof (ptr_t),
+			 "ptr_t",
+			 LISTOPT_PTRS);
+  list_t *ptr1 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
+  list_t *ptr2 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
+  list_t *ptr3 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
+  fz_insert (list, 0, 1, ptr1);
+  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 0);
+  fz_insert (list, 0, 1, ptr2);
+  ck_assert (fz_index_of (list, ptr2, fz_cmp_ptr) == 0);
+  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 1);
+  fz_insert (list, 0, 1, ptr3);
+  ck_assert (fz_index_of (list, ptr3, fz_cmp_ptr) == 0);
+  ck_assert (fz_index_of (list, ptr2, fz_cmp_ptr) == 1);
+  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 2);
+  fz_insert (list, 0, 1, ptr1);
+  ck_assert (fz_index_of (list, ptr1, fz_cmp_ptr) == 0);
+  ck_assert (fz_index_of (list, ptr3, fz_cmp_ptr) == 1);
+  ck_assert (fz_index_of (list, ptr2, fz_cmp_ptr) == 2);
+  fz_del (ptr3);
+  fz_del (ptr2);
+  fz_del (ptr1);
+  fz_del (list);
+}
+END_TEST
+
 /* Initiate a list test suite struct.  */
 Suite *
 list_suite_create ()
@@ -216,6 +267,7 @@ list_suite_create ()
   tcase_add_test (t, test_fz_erase);
   tcase_add_test (t, test_listopt_ptrs);
   tcase_add_test (t, test_listopt_keep);
+  tcase_add_test (t, test_fz_index_of);
   suite_add_tcase (s, t);
   return s;
 }

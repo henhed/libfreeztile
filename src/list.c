@@ -131,6 +131,50 @@ fz_erase (list_t *list, uint_t index, uint_t num)
   return list->erase (list, index, num);
 }
 
+/* Find the first occurance of ITEM in LIST.  */
+int_t
+fz_index_of (list_t *list, ptr_t item, cmp_f compare)
+{
+  uint_t i;
+  size_t len;
+
+  if (list == NULL)
+    return -EINVAL;
+
+  if (compare == NULL)
+    compare = fz_cmp_ptr;
+
+  len = fz_len (list);
+  for (i = 0; i < len; ++i)
+    if (compare (fz_at (list, i), item) == 0)
+      return i;
+
+  return -1;
+}
+
+/* Comparator functions for search and sort.  */
+int_t
+fz_cmp_ptr (ptr_t a, ptr_t b)
+{
+  if (a == b)
+    return 0;
+  else if (a == NULL)
+    return 1;
+  return -1;
+}
+
+int_t
+fz_cmp_int (ptr_t a, ptr_t b)
+{
+  return *((int_t *) a) - *((int_t *) b);
+}
+
+int_t
+fz_cmp_real (ptr_t a, ptr_t b)
+{
+  return *((real_t *) a) - *((real_t *) b);
+}
+
 /* Concrete random access list class struct.  */
 typedef struct
 {
