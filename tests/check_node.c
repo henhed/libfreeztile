@@ -58,17 +58,33 @@ START_TEST (test_fz_node_fork)
   ck_assert (fz_node_fork (node2, node2) == -EINVAL);
   ck_assert (fz_node_fork (NULL, node2) == -EINVAL);
   ck_assert (fz_node_fork (node2, NULL) == -EINVAL);
-
-  ck_assert (fz_del (node1) == 0);
-  ck_assert (fz_del (node2) == 0);
-  ck_assert (fz_del (node3) == 0);
 }
 END_TEST
 
 /* Test for `fz_node_join'.  */
 START_TEST (test_fz_node_join)
 {
+  node_t *node1 = fz_new (node_c);
+  node_t *node2 = fz_new (node_c);
+  node_t *node3 = fz_new (node_c);
 
+  ck_assert (fz_node_join (NULL, NULL) == -EINVAL);
+  ck_assert (fz_node_join (node1, NULL) == -EINVAL);
+  ck_assert (fz_node_join (NULL, root_node) == -EINVAL);
+  ck_assert (fz_node_join (node1, root_node) == -EINVAL);
+
+  fz_node_fork (root_node, node1);
+
+  ck_assert (fz_node_join (node1, root_node) == -EINVAL);
+  ck_assert (fz_node_join (node1, node2) == -EINVAL);
+
+  fz_node_fork (root_node, node2);
+  ck_assert (fz_node_join (node1, node2) >= 0);
+  ck_assert (fz_node_join (node1, node2) == -EINVAL);
+  ck_assert (fz_node_join (node2, node1) == -EINVAL);
+
+  fz_node_fork (node1, node3);
+  ck_assert (fz_node_join(node3, root_node) >= 0);
 }
 END_TEST
 

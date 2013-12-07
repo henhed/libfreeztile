@@ -36,8 +36,8 @@ static ptr_t
 node_constructor (ptr_t ptr, va_list *args)
 {
   node_t *self = (node_t *) ptr;
-  self->parents = fz_new_vector (ptr_t);
-  self->children = fz_new_vector (ptr_t);
+  self->parents = fz_new_pointer_vector (node_t *);
+  self->children = fz_new_owning_vector (node_t *);
   return self;
 }
 
@@ -66,11 +66,12 @@ is_ancestor_of (node_t *node, node_t *descendant)
   if (len == 0)
     return FALSE;
 
-  for (i = 0; i < len; ++i) {
-    child = fz_at_val (node->children, i, node_t *);
-    if (child == descendant || is_ancestor_of (child, descendant))
-      return TRUE;
-  }
+  for (i = 0; i < len; ++i)
+    {
+      child = fz_ref_at (node->children, i, node_t *);
+      if (child == descendant || is_ancestor_of (child, descendant))
+	return TRUE;
+    }
 
   return FALSE;
 }
@@ -82,33 +83,126 @@ is_descendant_of (node_t *node, node_t *ancestor)
   return is_ancestor_of (ancestor, node);
 }
 
+/* Get a list of all root nodes of NODE,  */
+static list_t *
+get_root_nodes (node_t *node, list_t *roots)
+{
+  uint_t i;
+  size_t num_parents;
+  node_t *parent;
+
+  if (roots == NULL)
+    roots = fz_new_pointer_vector (node_t *);
+
+  if (node != NULL)
+    {
+      num_parents = fz_len (node->parents);
+      for (i = 0; i < num_parents; ++i)
+	{
+	  parent = fz_ref_at (node->parents, i, node_t *);
+	  if (fz_len (parent->parents) == 0)
+	    fz_push_one (roots, parent);
+	  else
+	    roots = get_root_nodes (parent, roots);
+	}
+  }
+
+  return roots;
+}
+
+/* Return TRUE if CHILD can fork NODE.  */
+bool_t
+fz_node_can_fork (const node_t *node, const node_t *child)
+{
+  /* CHILD can not be appended to NODE if (1) CHILD and NODE refer to
+     the same object, (2) CHILD already has a parent or (3) CHILD is
+     an ancestor of NODE.  */
+  if (node == NULL || child == NULL || node == child)
+    return FALSE;
+
+  if (fz_len (child->parents) > 0 || is_ancestor_of (child, node))
+    return FALSE;
+
+  return TRUE;
+}
+
 /* Append CHILD to NODE.  */
 int_t
 fz_node_fork (node_t *node, node_t *child)
 {
   int_t err;
 
-  /* CHILD can not be appended to NODE if (1) CHILD and NODE refer to
-     the same object, (2) CHILD already has a parent or (3) CHILD is
-     an ancestor of NODE.  */
-  if (node == NULL || child == NULL || node == child)
+  if (fz_node_can_fork (node, child) == FALSE)
     return -EINVAL;
 
-  if (fz_len (child->parents) > 0 || is_ancestor_of (child, node))
-    return -EINVAL;
-
-  err = fz_push_one (child->parents, &node);
+  err = fz_push_one (child->parents, node);
   if (err < 0)
     return err;
 
-  return fz_push_one (node->children, &child);
+  return fz_push_one (node->children, child);
+}
+
+/* Return TRUE if PARENT can be joined into NODE.  */
+bool_t
+fz_node_can_join (const node_t *node, const node_t *parent)
+{
+  uint_t i;
+  size_t num_roots;
+  list_t *node_roots;
+  node_t *root;
+  bool_t can_join = FALSE;
+
+  /* PARENT can be joined into NODE if (1) NODE is already a child
+     (fork) of some node other than PARENT, (2) NODE and PARENT have
+     at least one common ancestor (PARENT can be the common acestor)
+     and (3) PARENT is not a descendant of NODE.  */
+
+  if (node == NULL || parent == NULL || node == parent)
+    return can_join;
+
+  if (fz_len (node->parents) == 0
+      || fz_index_of (node->parents, parent, fz_cmp_ptr) >= 0
+      || is_ancestor_of (node, parent))
+      return can_join;
+
+  node_roots = get_root_nodes (node, NULL);
+  if (fz_index_of (node_roots, parent, fz_cmp_ptr) >= 0)
+    /* PARENT is one of NODEs roots.  */
+    can_join = TRUE;
+  else
+    {
+      /* Check if PARENT is a descendant of any of NODEs roots.  */
+      num_roots = fz_len (node_roots);
+      for (i == 0; i < num_roots; ++i)
+	{
+	  root = fz_ref_at (node_roots, i, node_t *);
+	  if (is_ancestor_of (root, parent))
+	    {
+	      can_join = TRUE;
+	      break;
+	    }
+	}
+    }
+
+  fz_del (node_roots);
+
+  return can_join;
 }
 
 /* Connect PARENT to NODE.  */
 int_t
 fz_node_join (node_t *node, node_t *parent)
 {
-  return -ENOSYS;
+  int_t err;
+
+  if (fz_node_can_join (node, parent) == FALSE)
+    return -EINVAL;
+
+  err = fz_push_one (node->parents, parent);
+  if (err < 0)
+    return err;
+
+  return fz_push_one (parent->children, node);
 }
 
 /* `node_c' class descriptor.  */

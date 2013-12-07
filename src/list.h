@@ -31,13 +31,25 @@ typedef struct list_s list_t;
 #define LISTOPT_KEEP ((1 << 1) | LISTOPT_PTRS)
 #define LISTOPT_PASS ((1 << 2) | LISTOPT_PTRS)
 
-#define fz_new_vector(type) \
-  fz_new (vector_c, sizeof (type), #type, LISTOPT_NONE)
+#define fz_new_owning_vector(type) \
+  fz_new_vector (type, LISTOPT_PASS)
 
-#define fz_at_ref(list, index, type) \
+#define fz_new_retaining_vector(type) \
+  fz_new_vector (type, LISTOPT_KEEP)
+
+#define fz_new_pointer_vector(type) \
+  fz_new_vector (type, LISTOPT_PTRS)
+
+#define fz_new_simple_vector(type) \
+  fz_new_vector (type, LISTOPT_NONE)
+
+#define fz_new_vector(type, flags) \
+  fz_new (vector_c, sizeof (type), #type, flags)
+
+#define fz_ref_at(list, index, type) \
   ((type *) fz_at (list, index))
 
-#define fz_at_val(list, index, type) \
+#define fz_val_at(list, index, type) \
   (*((type *) fz_at (list, index)))
 
 #define fz_insert_one(list, index, item) \
