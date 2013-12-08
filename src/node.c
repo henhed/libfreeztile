@@ -53,7 +53,7 @@ node_destructor (ptr_t ptr)
 
 /* Return TRUE if NODE is an ancestor of DESCENDANT.  */
 static bool_t
-is_ancestor_of (node_t *node, node_t *descendant)
+is_ancestor_of (const node_t *node, const node_t *descendant)
 {
   uint_t i;
   size_t len;
@@ -68,7 +68,7 @@ is_ancestor_of (node_t *node, node_t *descendant)
 
   for (i = 0; i < len; ++i)
     {
-      child = fz_ref_at (node->children, i, node_t *);
+      child = fz_ref_at (node->children, i, node_t);
       if (child == descendant || is_ancestor_of (child, descendant))
 	return TRUE;
     }
@@ -78,14 +78,14 @@ is_ancestor_of (node_t *node, node_t *descendant)
 
 /* Return TRUE if NODE is a descendant of ANCESTOR.  */
 static bool_t
-is_descendant_of (node_t *node, node_t *ancestor)
+is_descendant_of (const node_t *node, const node_t *ancestor)
 {
   return is_ancestor_of (ancestor, node);
 }
 
 /* Get a list of all root nodes of NODE,  */
 static list_t *
-get_root_nodes (node_t *node, list_t *roots)
+get_root_nodes (const node_t *node, list_t *roots)
 {
   uint_t i;
   size_t num_parents;
@@ -99,7 +99,7 @@ get_root_nodes (node_t *node, list_t *roots)
       num_parents = fz_len (node->parents);
       for (i = 0; i < num_parents; ++i)
 	{
-	  parent = fz_ref_at (node->parents, i, node_t *);
+	  parent = fz_ref_at (node->parents, i, node_t);
 	  if (fz_len (parent->parents) == 0)
 	    fz_push_one (roots, parent);
 	  else
@@ -108,6 +108,33 @@ get_root_nodes (node_t *node, list_t *roots)
   }
 
   return roots;
+}
+
+/* Get a list of all lnodes of NODE,  */
+static list_t *
+get_leaf_nodes (const node_t *node, list_t *leaves)
+{
+  uint_t i;
+  size_t num_children;
+  node_t *child;
+
+  if (leaves == NULL)
+    leaves = fz_new_pointer_vector (node_t *);
+
+  if (node != NULL)
+    {
+      num_children = fz_len (node->children);
+      for (i = 0; i < num_children; ++i)
+	{
+	  child = fz_ref_at (node->children, i, node_t);
+	  if (fz_len (child->children) == 0)
+	    fz_push_one (leaves, child);
+	  else
+	    leaves = get_leaf_nodes (child, leaves);
+	}
+    }
+
+  return leaves;
 }
 
 /* Return TRUE if CHILD can fork NODE.  */
@@ -161,12 +188,14 @@ fz_node_can_join (const node_t *node, const node_t *parent)
     return can_join;
 
   if (fz_len (node->parents) == 0
-      || fz_index_of (node->parents, parent, fz_cmp_ptr) >= 0
+      || fz_index_of (node->parents,
+		      (const ptr_t) parent,
+		      fz_cmp_ptr) >= 0
       || is_ancestor_of (node, parent))
       return can_join;
 
   node_roots = get_root_nodes (node, NULL);
-  if (fz_index_of (node_roots, parent, fz_cmp_ptr) >= 0)
+  if (fz_index_of (node_roots, (const ptr_t) parent, fz_cmp_ptr) >= 0)
     /* PARENT is one of NODEs roots.  */
     can_join = TRUE;
   else
@@ -175,7 +204,7 @@ fz_node_can_join (const node_t *node, const node_t *parent)
       num_roots = fz_len (node_roots);
       for (i == 0; i < num_roots; ++i)
 	{
-	  root = fz_ref_at (node_roots, i, node_t *);
+	  root = fz_ref_at (node_roots, i, node_t);
 	  if (is_ancestor_of (root, parent))
 	    {
 	      can_join = TRUE;
@@ -203,6 +232,44 @@ fz_node_join (node_t *node, node_t *parent)
     return err;
 
   return fz_push_one (parent->children, node);
+}
+
+/* Render NODE and all its ancestors into BUFFER.  */
+static int_t
+render_node (node_t *node, list_t *buffer)
+{
+  return -ENOSYS;
+}
+
+/* Render frames from NODE into BUFFER.  */
+int_t
+fz_node_render (node_t *node, list_t *buffer)
+{
+  uint_t i;
+  size_t num_leaves;
+  node_t *anchor;
+  list_t *leaf_nodes;
+
+  if (node == NULL || buffer == NULL)
+    return -EINVAL;
+
+  /* Find anchor node.  */
+  leaf_nodes = get_leaf_nodes (node, NULL);
+  num_leaves = fz_len (leaf_nodes);
+
+  if (num_leaves == 0)
+    anchor = node;
+  else if (num_leaves == 1)
+    anchor = fz_ref_at (leaf_nodes, 0, node_t);
+  else
+    {
+      anchor = fz_new (node_c);
+      for (i = 0; i < num_leaves; ++i)
+	fz_node_join (anchor, fz_ref_at (leaf_nodes, i, node_t));
+    }
+
+  fz_del (leaf_nodes);
+  return render_node (anchor, buffer);
 }
 
 /* `node_c' class descriptor.  */

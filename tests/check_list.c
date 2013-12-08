@@ -68,8 +68,6 @@ START_TEST (test_fz_insert)
       ck_assert (fz_len (test_vector) == i + 1);
     }
 
-  ck_assert (fz_insert (test_vector, 0, 1, NULL) == -EINVAL);
-
   /* Test inserting multiple values at some offset.  */
   fz_insert (test_vector, 5, 10, vals);
   for (i = 0; i < 10; ++i)
@@ -93,6 +91,11 @@ START_TEST (test_fz_insert)
 
   /* Test inserting a list into itself.  */
   ck_assert (fz_insert (test_vector, 0, 1, test_vector) == -EINVAL);
+
+  /* Test clearing some space by inserting NULL.  */
+  ck_assert (fz_insert (test_vector, 0, 10, NULL) == 0);
+  ck_assert (*(int *) fz_at (test_vector, 0) == 0);
+  ck_assert (*(int *) fz_at (test_vector, 9) == 0);
 }
 END_TEST
 

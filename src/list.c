@@ -94,16 +94,18 @@ fz_at (list_t *list, uint_t index)
 int_t
 fz_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
 {
-  int_t err;
+  int_t err = -EINVAL;
   bool_t can_retain = FALSE;
 
-  if (list == NULL || num == 0 || item == NULL
+  if (list == NULL || num == 0
       || item == list || index > fz_len (list))
-    return -EINVAL;
+    return err;
   else if (list->insert == NULL)
     return -ENOSYS; /* Not implemented.  */
 
-  if (list->flags & LISTOPT_PTRS)
+  if (~list->flags & LISTOPT_PTRS)
+    err = list->insert (list, index, num, item);
+  else if (item != NULL)
     {
       if ((list->flags & LISTOPT_KEEP) == LISTOPT_KEEP
           || ((list->flags & LISTOPT_PASS) == LISTOPT_PASS
@@ -114,8 +116,6 @@ fz_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
       if (can_retain == TRUE && err >= 0)
         fz_retain (item);
     }
-  else
-    err = list->insert (list, index, num, item);
 
   return err;
 }
@@ -220,7 +220,15 @@ vector_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
 	       (self->length - index) * list->type_size);
     }
 
-  memcpy (self->items + (index * list->type_size), item, list->type_size * num);
+  if (item == NULL)
+    memset (self->items + (index * list->type_size),
+	    0,
+	    list->type_size * num);
+  else
+    memcpy (self->items + (index * list->type_size),
+	    item,
+	    list->type_size * num);
+
   self->length = length;
 
   return index;
