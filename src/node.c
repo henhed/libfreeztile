@@ -84,7 +84,7 @@ is_descendant_of (const node_t *node, const node_t *ancestor)
   return is_ancestor_of (ancestor, node);
 }
 
-/* Get a list of all root nodes of NODE,  */
+/* Get a list of all root nodes of NODE.  */
 static list_t *
 get_root_nodes (const node_t *node, list_t *roots)
 {
@@ -111,7 +111,7 @@ get_root_nodes (const node_t *node, list_t *roots)
   return roots;
 }
 
-/* Get a list of all lnodes of NODE,  */
+/* Get a list of all nodes of NODE.  */
 static list_t *
 get_leaf_nodes (const node_t *node, list_t *leaves)
 {
@@ -249,8 +249,8 @@ reset_node (node_t *node, size_t num_frames)
   fz_clear (node->framebuf, num_frames);
 }
 
-/* Render NUM_FRAMES frames from NODE and all its ancestors into NODEs
-   internal buffer.  */
+/* Render NODE and all its ancestors into NODEs internal buffer using
+   FRAMES as source for root nodes.  */
 static int_t
 render_node (node_t *node, const list_t *frames)
 {
