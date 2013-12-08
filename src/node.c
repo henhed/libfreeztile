@@ -18,18 +18,15 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include <errno.h>
+#include <string.h>
 #include "node.h"
+#include "private-node.h"
 #include "defs.h"
 #include "class.h"
 #include "list.h"
 
-/* node class struct.  */
-struct node_s
-{
-  const class_t *__class;
-  list_t *parents;
-  list_t *children;
-};
+#define NODE_NONE 0
+#define NODE_RENDERED (1 << 0)
 
 /* Node constructor.  */
 static ptr_t
@@ -38,6 +35,9 @@ node_constructor (ptr_t ptr, va_list *args)
   node_t *self = (node_t *) ptr;
   self->parents = fz_new_pointer_vector (node_t *);
   self->children = fz_new_owning_vector (node_t *);
+  self->framebuf = fz_new_simple_vector (real_t);
+  self->flags = NODE_NONE;
+  self->render = NULL;
   return self;
 }
 
@@ -48,6 +48,7 @@ node_destructor (ptr_t ptr)
   node_t *self = (node_t *) ptr;
   fz_del (self->parents);
   fz_del (self->children);
+  fz_del (self->framebuf);
   return self;
 }
 
@@ -234,11 +235,56 @@ fz_node_join (node_t *node, node_t *parent)
   return fz_push_one (parent->children, node);
 }
 
-/* Render NODE and all its ancestors into BUFFER.  */
-static int_t
-render_node (node_t *node, list_t *buffer)
+/* Reset NODE and all its ancestors as preparation for `render_node'.  */
+static void
+reset_node (node_t *node, size_t num_frames)
 {
-  return -ENOSYS;
+  uint_t i = 0;
+  size_t num_parents = fz_len (node->parents);
+
+  for (; i < num_parents; ++i)
+    reset_node (fz_ref_at (node->parents, i, node_t), num_frames);
+
+  node->flags &= ~NODE_RENDERED;
+  fz_clear (node->framebuf, num_frames);
+}
+
+/* Render NUM_FRAMES frames from NODE and all its ancestors into NODEs
+   internal buffer.  */
+static int_t
+render_node (node_t *node, const list_t *frames)
+{
+  uint_t i, j;
+  node_t *parent;
+  size_t num_frames = fz_len (frames);
+  size_t num_parents = fz_len (node->parents);
+
+  if (node->flags & NODE_RENDERED)
+    return (int_t) fz_len (node->framebuf);
+
+  node->flags |= NODE_RENDERED;
+
+  if (num_parents == 0)
+    {
+      /* FIXME: Use list copy function instead of `memcpy'.  */
+      memcpy (fz_at (node->framebuf, 0),
+              fz_at (frames, 0),
+              num_frames * sizeof (real_t));
+    }
+  else
+    for (i = 0; i < num_parents; ++i)
+      {
+        parent = fz_ref_at (node->parents, i, node_t);
+        render_node (parent, frames);
+        for (j = 0; j < num_frames; ++j)
+          fz_val_at (node->framebuf, j, real_t)
+            += fz_val_at (parent->framebuf, j, real_t);
+      }
+
+  if (node->render != NULL)
+    return node->render(node);
+
+  return (int_t) fz_len (node->framebuf);
 }
 
 /* Render frames from NODE into BUFFER.  */
@@ -246,6 +292,7 @@ int_t
 fz_node_render (node_t *node, list_t *buffer)
 {
   uint_t i;
+  int_t err;
   size_t num_leaves;
   node_t *anchor;
   list_t *leaf_nodes;
@@ -264,12 +311,25 @@ fz_node_render (node_t *node, list_t *buffer)
   else
     {
       anchor = fz_new (node_c);
-      for (i = 0; i < num_leaves; ++i)
+      fz_node_fork (fz_ref_at (leaf_nodes, 0, node_t), anchor);
+      for (i = 1; i < num_leaves; ++i)
         fz_node_join (anchor, fz_ref_at (leaf_nodes, i, node_t));
     }
 
   fz_del (leaf_nodes);
-  return render_node (anchor, buffer);
+
+  /* Render node tree.  */
+  reset_node (anchor, fz_len (buffer));
+  err = render_node (anchor, buffer);
+  if (err < 0)
+    return err;
+
+  /* FIXME: Use list copy function instead of `memcpy'.  */
+  memcpy (fz_at (buffer, 0),
+          fz_at (anchor->framebuf, 0),
+          err * sizeof (real_t));
+
+  return err;
 }
 
 /* `node_c' class descriptor.  */
