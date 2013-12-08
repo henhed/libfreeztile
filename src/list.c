@@ -46,7 +46,7 @@ list_constructor (ptr_t ptr, va_list *args)
   flags_t flags = va_arg (*args, flags_t);
 
   self->type_name = (char *) fz_malloc (sizeof (char) *
-					(strlen (type_name) + 1));
+                                        (strlen (type_name) + 1));
   strcpy (self->type_name, type_name);
   self->type_size = type_size;
   self->flags = flags;
@@ -216,18 +216,18 @@ vector_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
   if (index != self->length)
     {
       memmove (self->items + ((index + num) * list->type_size),
-	       self->items + (index * list->type_size),
-	       (self->length - index) * list->type_size);
+               self->items + (index * list->type_size),
+               (self->length - index) * list->type_size);
     }
 
   if (item == NULL)
     memset (self->items + (index * list->type_size),
-	    0,
-	    list->type_size * num);
+            0,
+            list->type_size * num);
   else
     memcpy (self->items + (index * list->type_size),
-	    item,
-	    list->type_size * num);
+            item,
+            list->type_size * num);
 
   self->length = length;
 
@@ -244,8 +244,8 @@ vector_erase (list_t *list, uint_t index, uint_t num)
   if (index != self->length)
     {
       memmove (self->items + (index * list->type_size),
-	       self->items + ((index + num) * list->type_size),
-	       (self->length - index) * list->type_size);
+               self->items + ((index + num) * list->type_size),
+               (self->length - index) * list->type_size);
     }
 
   return index;

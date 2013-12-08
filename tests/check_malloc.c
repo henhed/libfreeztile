@@ -121,7 +121,7 @@ START_TEST (test_fz_memusage)
   /* Make sure different flavors of 'show all' reports the same usage.  */
   usage = fz_memusage (0);
   ck_assert ((fz_memusage (MEMUSAGE_META | MEMUSAGE_DISP) == usage)
-	     && (fz_memusage (MEMUSAGE_All) == usage));
+             && (fz_memusage (MEMUSAGE_All) == usage));
 }
 END_TEST
 

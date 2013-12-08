@@ -70,7 +70,7 @@ is_ancestor_of (const node_t *node, const node_t *descendant)
     {
       child = fz_ref_at (node->children, i, node_t);
       if (child == descendant || is_ancestor_of (child, descendant))
-	return TRUE;
+        return TRUE;
     }
 
   return FALSE;
@@ -98,13 +98,13 @@ get_root_nodes (const node_t *node, list_t *roots)
     {
       num_parents = fz_len (node->parents);
       for (i = 0; i < num_parents; ++i)
-	{
-	  parent = fz_ref_at (node->parents, i, node_t);
-	  if (fz_len (parent->parents) == 0)
-	    fz_push_one (roots, parent);
-	  else
-	    roots = get_root_nodes (parent, roots);
-	}
+        {
+          parent = fz_ref_at (node->parents, i, node_t);
+          if (fz_len (parent->parents) == 0)
+            fz_push_one (roots, parent);
+          else
+            roots = get_root_nodes (parent, roots);
+        }
   }
 
   return roots;
@@ -125,13 +125,13 @@ get_leaf_nodes (const node_t *node, list_t *leaves)
     {
       num_children = fz_len (node->children);
       for (i = 0; i < num_children; ++i)
-	{
-	  child = fz_ref_at (node->children, i, node_t);
-	  if (fz_len (child->children) == 0)
-	    fz_push_one (leaves, child);
-	  else
-	    leaves = get_leaf_nodes (child, leaves);
-	}
+        {
+          child = fz_ref_at (node->children, i, node_t);
+          if (fz_len (child->children) == 0)
+            fz_push_one (leaves, child);
+          else
+            leaves = get_leaf_nodes (child, leaves);
+        }
     }
 
   return leaves;
@@ -189,8 +189,8 @@ fz_node_can_join (const node_t *node, const node_t *parent)
 
   if (fz_len (node->parents) == 0
       || fz_index_of (node->parents,
-		      (const ptr_t) parent,
-		      fz_cmp_ptr) >= 0
+                      (const ptr_t) parent,
+                      fz_cmp_ptr) >= 0
       || is_ancestor_of (node, parent))
       return can_join;
 
@@ -203,14 +203,14 @@ fz_node_can_join (const node_t *node, const node_t *parent)
       /* Check if PARENT is a descendant of any of NODEs roots.  */
       num_roots = fz_len (node_roots);
       for (i == 0; i < num_roots; ++i)
-	{
-	  root = fz_ref_at (node_roots, i, node_t);
-	  if (is_ancestor_of (root, parent))
-	    {
-	      can_join = TRUE;
-	      break;
-	    }
-	}
+        {
+          root = fz_ref_at (node_roots, i, node_t);
+          if (is_ancestor_of (root, parent))
+            {
+              can_join = TRUE;
+              break;
+            }
+        }
     }
 
   fz_del (node_roots);
@@ -265,7 +265,7 @@ fz_node_render (node_t *node, list_t *buffer)
     {
       anchor = fz_new (node_c);
       for (i = 0; i < num_leaves; ++i)
-	fz_node_join (anchor, fz_ref_at (leaf_nodes, i, node_t));
+        fz_node_join (anchor, fz_ref_at (leaf_nodes, i, node_t));
     }
 
   fz_del (leaf_nodes);

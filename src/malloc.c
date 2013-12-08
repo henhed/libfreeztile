@@ -47,25 +47,25 @@ fz_realloc (ptr_t ptr, size_t len)
       /* If a pointer is given we expect to find an embedded meta struct.  */
       meta = ((struct memory_meta *) ptr) - 1;
       if (meta->len >= len)
-	/* Current size is sufficent.  */
-	return ptr;
+        /* Current size is sufficent.  */
+        return ptr;
       else
-	{
-	  /* Not sufficent, decrease global counter.  */
-	  _total_disp -= meta->len;
-	  /* Memory that is expanded once is likely to be expanded again
-	     (for instance in a list that is growing) so we allocate some
-	     extra space right away, hopefully reducing the number of calls
-	     to `realloc'.  We increase LEN to the nearest power of 2.  */
-	  len = (size_t) pow (2, ceil (log (len) / log (2)));
-	}
+        {
+          /* Not sufficent, decrease global counter.  */
+          _total_disp -= meta->len;
+          /* Memory that is expanded once is likely to be expanded again
+             (for instance in a list that is growing) so we allocate some
+             extra space right away, hopefully reducing the number of calls
+             to `realloc'.  We increase LEN to the nearest power of 2.  */
+          len = (size_t) pow (2, ceil (log (len) / log (2)));
+        }
     }
   else
     meta = NULL;
 
   /* Allocate new space and increase global counter.  */
   meta = ((struct memory_meta *)
-	  realloc (meta, sizeof (struct memory_meta) + len));
+          realloc (meta, sizeof (struct memory_meta) + len));
   assert (meta);
   _total_disp += (meta->len = len);
 
@@ -120,7 +120,7 @@ fz_free (ptr_t ptr)
   if (--(meta->numref) == 0)
     {
       /* Decrease memory usage counters and free memory if
-	 reference counter reaches zero.  */
+         reference counter reaches zero.  */
       _total_meta -= sizeof (struct memory_meta);
       _total_disp -= meta->len;
       free (meta);

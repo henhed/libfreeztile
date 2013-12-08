@@ -79,14 +79,14 @@ START_TEST (test_fz_insert)
   /* Test inserting at end.  */
   fz_insert (test_vector, fz_len (test_vector), 1, vals);
   ck_assert_int_eq (*((int *) fz_at (test_vector, fz_len (test_vector) - 1)),
-		    vals[0]);
+                    vals[0]);
   ck_assert_int_eq (fz_len (test_vector), num_vals + 11);
 
   /* Test inserting past end.  */
   ck_assert (fz_insert (test_vector,
-			fz_len (test_vector) + 1,
-			1,
-			vals) == -EINVAL);
+                        fz_len (test_vector) + 1,
+                        1,
+                        vals) == -EINVAL);
   ck_assert_int_eq (fz_len (test_vector), num_vals + 11);
 
   /* Test inserting a list into itself.  */
@@ -153,9 +153,9 @@ START_TEST (test_fz_index_of)
 
   /* Test searching for pointers.  */
   list_t *list = fz_new (vector_c,
-			 sizeof (ptr_t),
-			 "ptr_t",
-			 LISTOPT_PTRS);
+                         sizeof (ptr_t),
+                         "ptr_t",
+                         LISTOPT_PTRS);
   list_t *ptr1 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
   list_t *ptr2 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
   list_t *ptr3 = fz_new (vector_c, sizeof (ptr_t), "ptr_t", 0);
@@ -184,9 +184,9 @@ START_TEST (test_listopt_ptrs)
 {
   /* Test normal behavior.  */
   list_t *list = fz_new (vector_c,
-			 sizeof (ptr_t),
-			 "ptr_t",
-			 LISTOPT_NONE);
+                         sizeof (ptr_t),
+                         "ptr_t",
+                         LISTOPT_NONE);
   ck_assert (list != NULL);
 
   fz_insert (list, 0, 1, &test_vector);
@@ -198,9 +198,9 @@ START_TEST (test_listopt_ptrs)
 
   /* Test pointer storage behavior.  */
   list = fz_new (vector_c,
-		 sizeof (ptr_t),
-		 "ptr_t",
-		 LISTOPT_PTRS);
+                 sizeof (ptr_t),
+                 "ptr_t",
+                 LISTOPT_PTRS);
   ck_assert (list != NULL);
 
   fz_insert (list, 0, 1, test_vector);
@@ -215,13 +215,13 @@ START_TEST (test_listopt_keep)
 {
   /* Test normal behavior.  */
   list_t *list = fz_new (vector_c,
-			 sizeof (ptr_t),
-			 "ptr_t",
-			 LISTOPT_PTRS);
+                         sizeof (ptr_t),
+                         "ptr_t",
+                         LISTOPT_PTRS);
   list_t *object = fz_new (vector_c,
-			 sizeof (int_t),
-			 "int_t",
-			 LISTOPT_NONE);
+                         sizeof (int_t),
+                         "int_t",
+                         LISTOPT_NONE);
   ck_assert (list != NULL && object != NULL);
 
   fz_insert (list, 0, 1, object);
@@ -232,13 +232,13 @@ START_TEST (test_listopt_keep)
 
   /* Test retaining behavior.  */
   list = fz_new (vector_c,
-		 sizeof (ptr_t),
-		 "ptr_t",
-		 LISTOPT_KEEP);
+                 sizeof (ptr_t),
+                 "ptr_t",
+                 LISTOPT_KEEP);
   object = fz_new (vector_c,
-		   sizeof (int_t),
-		   "int_t",
-		   LISTOPT_NONE);
+                   sizeof (int_t),
+                   "int_t",
+                   LISTOPT_NONE);
   ck_assert (list != NULL && object != NULL);
 
   fz_insert (list, 0, 1, object);
@@ -249,9 +249,9 @@ START_TEST (test_listopt_keep)
   ck_assert (fz_memusage (0) < memusage);
 
   object = fz_new (vector_c,
-		   sizeof (int_t),
-		   "int_t",
-		   LISTOPT_NONE);
+                   sizeof (int_t),
+                   "int_t",
+                   LISTOPT_NONE);
   fz_insert (list, 0, 1, object);
   memusage = fz_memusage (0);
   fz_del (object);
