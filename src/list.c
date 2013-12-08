@@ -124,8 +124,10 @@ fz_insert (list_t *list, uint_t index, uint_t num, ptr_t item)
 int_t
 fz_erase (list_t *list, uint_t index, uint_t num)
 {
-  if (list == NULL || num == 0 || index + num > fz_len (list))
+  if (list == NULL || index + num > fz_len (list))
     return -EINVAL;
+  else if (num == 0)
+    return (int_t) index;
   else if (list->erase == NULL)
     return -ENOSYS; /* Not implemented.  */
 
@@ -134,6 +136,24 @@ fz_erase (list_t *list, uint_t index, uint_t num)
     fz_del (fz_at (list, index));
 
   return list->erase (list, index, num);
+}
+
+/* Clear LIST and allocate space for SIZE new items.  */
+int_t
+fz_clear (list_t *list, size_t size)
+{
+  int_t err = fz_erase (list, 0, fz_len (list));
+  if (err < 0)
+    return err;
+
+  if (size == 0)
+    return 0;
+
+  err = fz_insert (list, 0, size, NULL);
+  if (err < 0)
+    return err;
+
+  return (int_t) size;
 }
 
 /* Find the first occurance of ITEM in LIST.  */

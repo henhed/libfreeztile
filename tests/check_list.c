@@ -104,7 +104,7 @@ START_TEST (test_fz_erase)
 {
   srand (time (0));
   int vals[] = {rand (), rand (), rand (), rand (), rand ()};
-  ck_assert (fz_erase (test_vector, 0, 0) == -EINVAL);
+  ck_assert (fz_erase (test_vector, 0, 0) == 0);
   ck_assert (fz_erase (test_vector, 0, 1) == -EINVAL);
   fz_insert (test_vector, 0, 5, vals);
 
@@ -125,6 +125,25 @@ START_TEST (test_fz_erase)
   /* Test erasing at end.  */
   ck_assert (fz_erase (test_vector, 1, 1) == 1);
   ck_assert (fz_len (test_vector) == 1);
+}
+END_TEST
+
+/* Test for `fz_clear'.  */
+START_TEST (test_fz_clear)
+{
+  ck_assert (fz_len (test_vector) == 0);
+  ck_assert (fz_clear (test_vector, 10) == 10);
+  ck_assert (fz_len (test_vector) == 10);
+  ck_assert (fz_val_at (test_vector, 0, int_t) == 0);
+  ck_assert (fz_val_at (test_vector, 9, int_t) == 0);
+  ck_assert (fz_ref_at (test_vector, 10, int_t) == NULL);
+
+  fz_val_at (test_vector, 3, int_t) = 3;
+  ck_assert (fz_val_at (test_vector, 3, int_t) == 3);
+  ck_assert (fz_clear (test_vector, 4) == 4);
+  ck_assert (fz_len (test_vector) == 4);
+  ck_assert (fz_val_at (test_vector, 3, int_t) == 0);
+  ck_assert (fz_ref_at (test_vector, 4, int_t) == NULL);
 }
 END_TEST
 
@@ -291,6 +310,7 @@ list_suite_create ()
   tcase_add_test (t, test_fz_at);
   tcase_add_test (t, test_fz_insert);
   tcase_add_test (t, test_fz_erase);
+  tcase_add_test (t, test_fz_clear);
   tcase_add_test (t, test_fz_index_of);
   tcase_add_test (t, test_listopt_ptrs);
   tcase_add_test (t, test_listopt_keep);
