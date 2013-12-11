@@ -1,6 +1,6 @@
 # Process this file with automake to produce Makefile.in.
-TESTS = check_malloc check_class check_list check_node
-check_PROGRAMS = check_malloc check_class check_list check_node
+TESTS = check_malloc check_class check_list check_node check_form
+check_PROGRAMS = check_malloc check_class check_list check_node check_form
 check_malloc_SOURCES = check_malloc.c $(top_builddir)/src/malloc.h
 check_malloc_CFLAGS = @CHECK_CFLAGS@
 check_malloc_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
@@ -13,3 +13,6 @@ check_list_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
 check_node_SOURCES = check_node.c $(top_builddir)/src/node.h
 check_node_CFLAGS = @CHECK_CFLAGS@
 check_node_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
+check_form_SOURCES = check_form.c $(top_builddir)/src/form.h
+check_form_CFLAGS = @CHECK_CFLAGS@
+check_form_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
