@@ -5,6 +5,7 @@ libfreeztile_la_SOURCES =        \
     malloc.h malloc.c            \
     class.h class.c              \
     list.h list.c                \
+    voice.h voice.c              \
     node.h private-node.h node.c \
     form.h form.c
 libfreeztile_la_LIBADD = -lm
