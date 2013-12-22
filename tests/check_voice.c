@@ -98,6 +98,48 @@ START_TEST (test_fz_voice_press_pos)
 }
 END_TEST
 
+/* Negative Voice press, aftertouch and release function tests.  */
+START_TEST (test_fz_voice_press_neg)
+{
+  srand (time (0));
+
+  int_t (*pfnc) (voice_t *, real_t, real_t) = fz_voice_press;
+  int_t (*afnc) (voice_t *, real_t) = fz_voice_aftertouch;
+  int_t (*rfnc) (voice_t *) = fz_voice_release;
+  real_t freq = -(real_t) (rand () % 10000);
+  real_t velo = -((real_t) rand ()) / RAND_MAX;
+  real_t pres = -((real_t) rand ()) / RAND_MAX;
+
+  /* Press bad values.  */
+  ck_assert (pfnc (NULL, 1, 1) == EINVAL);
+  ck_assert (fz_voice_pressed (voice) == FALSE);
+  ck_assert (pfnc (voice, 0, 1) == EINVAL);
+  ck_assert (fz_voice_pressed (voice) == FALSE);
+  ck_assert (pfnc (voice, freq, 1) == EINVAL);
+  ck_assert (fz_voice_pressed (voice) == FALSE);
+  ck_assert (pfnc (voice, 1, 0) == EINVAL);
+  ck_assert (fz_voice_pressed (voice) == FALSE);
+  ck_assert (pfnc (voice, 1, velo) == EINVAL);
+  ck_assert (fz_voice_pressed (voice) == FALSE);
+
+  pfnc (voice, 1, 1);
+  ck_assert (fz_voice_pressed (voice) == TRUE);
+  ck_assert (pfnc (voice, 1, 1) == EINVAL); /* Already pressed.  */
+
+  /* Touch bad values,  */
+  ck_assert (afnc (NULL, 1) == EINVAL);
+  ck_assert (afnc (voice, 0) == EINVAL);
+  ck_assert (afnc (voice, pres) == EINVAL);
+
+  /* Release bad values.  */
+  ck_assert (rfnc (NULL) == EINVAL);
+  rfnc (voice);
+  ck_assert (fz_voice_pressed (voice) == FALSE);
+  ck_assert (rfnc (voice) == EINVAL); /* Already released.  */
+  ck_assert (afnc (voice, 1) == EINVAL); /* Touch released voice.  */
+}
+END_TEST
+
 /* Initiate a voice test suite struct.  */
 Suite *
 voice_suite_create ()
@@ -106,6 +148,7 @@ voice_suite_create ()
   TCase *t = tcase_create ("voice");
   tcase_add_checked_fixture (t, setup, teardown);
   tcase_add_test (t, test_fz_voice_press_pos);
+  tcase_add_test (t, test_fz_voice_press_neg);
   suite_add_tcase (s, t);
   return s;
 }
