@@ -19,6 +19,7 @@
 
 #include <check.h>
 #include <stdlib.h>
+#include <math.h>
 #include <errno.h>
 #include "voice.h"
 
@@ -140,6 +141,26 @@ START_TEST (test_fz_voice_press_neg)
 }
 END_TEST
 
+/* Test note string parser.  */
+START_TEST (test_fz_note_frequency)
+{
+  real_t none = fz_note_frequency (NULL);
+  real_t empty = fz_note_frequency ("");
+  real_t rubbish = fz_note_frequency ("RUBBISH");
+  real_t a4 = fz_note_frequency ("A");
+  real_t bflat4 = fz_note_frequency ("Bb");
+  real_t csharp3 = fz_note_frequency ("C#3");
+  real_t semitone = TWELFTH_ROOT_OF_TWO; /* Equal-tempered tuning.  */
+
+  ck_assert (none == 0);
+  ck_assert (empty == 0);
+  ck_assert (rubbish == 0);
+  ck_assert (a4 == 440);
+  ck_assert (bflat4 == 440 * semitone);
+  ck_assert (csharp3 == 440 * pow (semitone, -20));
+}
+END_TEST
+
 /* Initiate a voice test suite struct.  */
 Suite *
 voice_suite_create ()
@@ -149,6 +170,7 @@ voice_suite_create ()
   tcase_add_checked_fixture (t, setup, teardown);
   tcase_add_test (t, test_fz_voice_press_pos);
   tcase_add_test (t, test_fz_voice_press_neg);
+  tcase_add_test (t, test_fz_note_frequency);
   suite_add_tcase (s, t);
   return s;
 }

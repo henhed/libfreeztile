@@ -17,6 +17,8 @@
    along with libfreeztile; see the file COPYING.  If not see
    <http://www.gnu.org/licenses/>.  */
 
+#include <string.h>
+#include <math.h>
 #include <errno.h>
 #include "voice.h"
 #include "class.h"
@@ -119,8 +121,52 @@ fz_voice_pressure (const voice_t *voice)
 real_t
 fz_note_frequency (const char *note)
 {
-  (void) note;
-  return 0;
+  static const char *names = "c\0d\0ef\0g\0a\0b";
+  size_t length;
+  uint_t i;
+  uint_t pos = 0;
+  int_t octave = 4;
+  int_t offset;
+  char name;
+
+  if (note == NULL)
+    return 0;
+
+  length = strlen (note);
+  if (length == 0)
+    return 0;
+
+  for (; pos < length && isspace (note[pos]); ++pos);
+
+  if (pos == length)
+    return 0;
+
+  name = tolower (note[pos]);
+  for (i = 0; i < 12; ++i)
+    {
+      if (name == names[i])
+        {
+          offset = i - 9;
+          break;
+        }
+      else if (i == 11)
+        return 0;
+    }
+
+  for (++pos; pos < length; ++pos)
+    {
+      if (tolower (note[pos]) == 'b')
+        --offset;
+      else if (note[pos] == '#')
+        ++offset;
+      else if (isspace (note[pos]))
+        continue;
+      else
+        break; /* Octave inicator or junk.  */
+    }
+
+  octave = (pos < length ? atoi (note + pos) : octave) - 4;
+  return 440. * pow (TWELFTH_ROOT_OF_TWO, offset + (12 * octave));
 }
 
 /* `voice_c' class descriptor.  */
