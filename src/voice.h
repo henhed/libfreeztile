@@ -26,6 +26,18 @@ __BEGIN_DECLS
 
 typedef struct voice_s voice_t;
 
+#define TWELFTH_ROOT_OF_TWO 1.05946309435929526
+
+extern int_t fz_voice_press (voice_t *, real_t, real_t);
+extern int_t fz_voice_aftertouch (voice_t *, real_t);
+extern int_t fz_voice_release (voice_t *);
+extern bool_t fz_voice_pressed (const voice_t *);
+extern real_t fz_voice_frequency (const voice_t *);
+extern real_t fz_voice_velocity (const voice_t *);
+extern real_t fz_voice_pressure (const voice_t *);
+
+extern real_t fz_note_frequency (const char *);
+
 extern const class_t *voice_c;
 
 __END_DECLS
