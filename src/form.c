@@ -18,47 +18,94 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include <math.h>
+#include <errno.h>
 #include "form.h"
 #include "node.h"
 #include "private-node.h"
 #include "list.h"
 
-#define SHAPE_SIZE 1024
+#define SHAPE_SIZE 4096
+#define TWO_PI 6.28318530718
 
 /* Form class struct.  */
 typedef struct form_s
 {
   node_t __parent;
   list_t *shape;
-  real_t pointer;
-  real_t step;
+  list_t *vstates;
 } form_t;
+
+/* Struct to keep track of individual voice states.  */
+struct voice_state_s
+{
+  voice_t *voice;
+  real_t pos;
+};
+
+static struct voice_state_s *
+get_voice_state (form_t *form, voice_t *voice)
+{
+  int_t i;
+  size_t nstates;
+  struct voice_state_s *state = NULL;
+  struct voice_state_s newstate;
+
+  if (form == NULL)
+    return state;
+
+  nstates = fz_len (form->vstates);
+  for (i = 0; i < nstates; ++i)
+    {
+      state = fz_ref_at (form->vstates, i, struct voice_state_s);
+      if (state->voice == voice)
+        return state;
+    }
+
+  newstate.voice = voice;
+  newstate.pos = 0;
+
+  i = fz_push_one (form->vstates, &newstate);
+  if (i >= 0)
+    state = fz_ref_at (form->vstates, i, struct voice_state_s);
+
+  return state;
+}
 
 /* Form node renderer.  */
 static int_t
-form_render (node_t *node)
+form_render (node_t *node, const request_t *request)
 {
   form_t *form = (form_t *) node;
   uint_t i = 0;
-  size_t num_frames = fz_len (node->framebuf);
-  size_t shape_size = fz_len (form->shape);
+  size_t nframes = fz_len (node->framebuf);
+  size_t period = fz_len (form->shape);
+  real_t freq;
+  real_t fwidth;
+  struct voice_state_s *state;
 
-  if (shape_size == 0)
+  if (period == 0 || request->voice == NULL || request->srate <= 0)
     return 0;
 
-  for (; i < num_frames; ++i)
+  freq = fz_voice_frequency (request->voice);
+  state = get_voice_state (form, request->voice);
+  if (freq <= 0 || state == NULL)
+    return 0;
+
+  fwidth = 1. / (request->srate / freq);
+
+  for (; i < nframes; ++i)
     {
       fz_val_at (node->framebuf, i, real_t)
         = fz_val_at (form->shape,
-                     (uint_t) (form->pointer * shape_size),
+                     (uint_t) (state->pos * period),
                      real_t);
 
-      form->pointer += form->step;
-      while (form->pointer >= 1.)
-        form->pointer -= 1.;
+      state->pos += fwidth;
+      while (state->pos >= 1.)
+        state->pos -= 1.;
     }
 
-  return num_frames;
+  return nframes;
 }
 
 /* Form constructor.  */
@@ -67,17 +114,12 @@ form_constructor (ptr_t ptr, va_list *args)
 {
   form_t *self = (form_t *)
     ((const class_t *) node_c)->construct (ptr, args);
-  uint_t i;
+  int_t shape = va_arg (*args, int_t);
 
   self->__parent.render = form_render;
   self->shape = fz_new_simple_vector (real_t);
-  self->pointer = 0;
-  self->step = 0.009977324; /* 440 Hz in 44100.  */
-
-  fz_clear (self->shape, SHAPE_SIZE);
-  for (; i < SHAPE_SIZE; ++i)
-    fz_val_at (self->shape, i, real_t)
-      = (fabs ((((real_t) i * 4) / SHAPE_SIZE) - 2) - 1) * -1;
+  self->vstates = fz_new_simple_vector (struct voice_state_s);
+  fz_form_set_shape (self, shape);
 
   return self;
 }
@@ -89,7 +131,45 @@ form_destructor (ptr_t ptr)
   form_t *self = (form_t *)
     ((const class_t *) node_c)->destruct (ptr);
   fz_del (self->shape);
+  fz_del (self->vstates);
   return self;
+}
+
+/* Set shape to be used for `fz_node_render'.  */
+int_t
+fz_form_set_shape (form_t *form, int_t shape)
+{
+  uint_t i;
+  size_t shape_size;
+
+  if (form == NULL)
+    return -EINVAL;
+
+  shape_size = (shape == SHAPE_SQUARE) ? 2 : SHAPE_SIZE;
+  fz_clear (form->shape, shape_size);
+
+  switch (shape)
+    {
+    case SHAPE_SINE:
+      for (i = 0; i < shape_size; ++i)
+        fz_val_at (form->shape, i, real_t)
+          = sin (TWO_PI * ((real_t) i) / shape_size);
+      break;
+    case SHAPE_TRIANGLE:
+      for (i = 0; i < shape_size; ++i)
+        fz_val_at (form->shape, i, real_t)
+          = (fabs ((((real_t) i * 4) / shape_size) - 2) - 1) * -1;
+      break;
+    case SHAPE_SQUARE:
+      for (i = 0; i < shape_size; ++i)
+        fz_val_at (form->shape, i, real_t)
+          = i < (shape_size / 2) ? -1. : 1.;
+          break;
+    default:
+      return -EINVAL;
+    }
+
+  return shape;
 }
 
 /* `form_c' class descriptor.  */

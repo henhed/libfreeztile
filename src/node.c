@@ -252,7 +252,9 @@ reset_node (node_t *node, size_t num_frames)
 /* Render NODE and all its ancestors into NODEs internal buffer using
    FRAMES as source for root nodes.  */
 static int_t
-render_node (node_t *node, const list_t *frames)
+render_node (node_t *node,
+             const list_t *frames,
+             const request_t *request)
 {
   uint_t i, j;
   node_t *parent;
@@ -275,44 +277,46 @@ render_node (node_t *node, const list_t *frames)
     for (i = 0; i < num_parents; ++i)
       {
         parent = fz_ref_at (node->parents, i, node_t);
-        render_node (parent, frames);
+        render_node (parent, frames, request);
         for (j = 0; j < num_frames; ++j)
           fz_val_at (node->framebuf, j, real_t)
             += fz_val_at (parent->framebuf, j, real_t);
       }
 
   if (node->render != NULL)
-    return node->render(node);
+    return node->render(node, request);
 
   return (int_t) fz_len (node->framebuf);
 }
 
 /* Render frames from NODE into BUFFER.  */
 int_t
-fz_node_render (node_t *node, list_t *buffer)
+fz_node_render (node_t *node,
+                list_t *buffer,
+                const request_t *request)
 {
   uint_t i;
   int_t err;
-  size_t num_leaves;
+  size_t nleaves;
   node_t *anchor;
   list_t *leaf_nodes;
 
-  if (node == NULL || buffer == NULL)
+  if (node == NULL || buffer == NULL || request == NULL)
     return -EINVAL;
 
   /* Find anchor node.  */
   leaf_nodes = get_leaf_nodes (node, NULL);
-  num_leaves = fz_len (leaf_nodes);
+  nleaves = fz_len (leaf_nodes);
 
-  if (num_leaves == 0)
+  if (nleaves == 0)
     anchor = node;
-  else if (num_leaves == 1)
+  else if (nleaves == 1)
     anchor = fz_ref_at (leaf_nodes, 0, node_t);
   else
     {
       anchor = fz_new (node_c);
       fz_node_fork (fz_ref_at (leaf_nodes, 0, node_t), anchor);
-      for (i = 1; i < num_leaves; ++i)
+      for (i = 1; i < nleaves; ++i)
         fz_node_join (anchor, fz_ref_at (leaf_nodes, i, node_t));
     }
 
@@ -320,7 +324,7 @@ fz_node_render (node_t *node, list_t *buffer)
 
   /* Render node tree.  */
   reset_node (anchor, fz_len (buffer));
-  err = render_node (anchor, buffer);
+  err = render_node (anchor, buffer, request);
   if (err < 0)
     return err;
 

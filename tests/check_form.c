@@ -38,14 +38,22 @@ teardown ()
 /* Test of triangle shaped form.  */
 START_TEST (test_triangle_form)
 {
-  form_t *triangle = fz_new (form_c);
+  form_t *triangle = fz_new (form_c, SHAPE_TRIANGLE);
   list_t *frames = fz_new_simple_vector (real_t);
-  size_t num_frames = 256;
+  size_t nframes = 256;
   uint_t i;
+  voice_t *voice = fz_new (voice_c);
+  request_t request = {
+    .voice = voice,
+    .srate = REQUEST_SRATE_DEFAULT,
+    .access = REQUEST_ACCESS_INTERLEAVED
+  };
 
-  fz_clear (frames, num_frames);
-  ck_assert (fz_node_render (triangle, frames) == num_frames);
-
+  fz_clear (frames, nframes);
+  ck_assert (fz_node_render ((node_t *) triangle,
+                             frames,
+                             &request) == nframes);
+  fz_del (voice);
   fz_del (frames);
   fz_del (triangle);
 }

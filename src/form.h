@@ -24,7 +24,13 @@
 
 __BEGIN_DECLS
 
+#define SHAPE_SINE 0
+#define SHAPE_TRIANGLE 1
+#define SHAPE_SQUARE 2
+
 typedef struct form_s form_t;
+
+extern int_t fz_form_set_shape (form_t *, int_t);
 
 extern const class_t *form_c;
 

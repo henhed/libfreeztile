@@ -31,8 +31,9 @@ typedef struct test_node_s
 } test_node_t;
 
 static int_t
-test_node_render (node_t *node)
+test_node_render (node_t *node, const request_t *request)
 {
+  (void) request;
   uint_t i;
   size_t num_frames = fz_len (node->framebuf);
   real_t multiplier = ((test_node_t *) node)->multiplier;
@@ -134,7 +135,7 @@ START_TEST (test_fz_node_join)
   ck_assert (fz_node_join (node2, node1) == -EINVAL);
 
   fz_node_fork (node1, node3);
-  ck_assert (fz_node_join(node3, root_node) >= 0);
+  ck_assert (fz_node_join (node3, root_node) >= 0);
 }
 END_TEST
 
@@ -142,9 +143,11 @@ END_TEST
 START_TEST (test_fz_node_render)
 {
   srand (time (0));
+
   list_t *frames = fz_new_simple_vector (real_t);
-  size_t num_frames = 5;
+  size_t nframes = 5;
   real_t src[] = {rand (), rand (), rand (), rand (), rand ()};
+  request_t request;
   uint_t i;
 
   node_t *node1 = fz_new (test_node_c, 1.1);
@@ -155,10 +158,12 @@ START_TEST (test_fz_node_render)
   fz_node_fork (root_node, node2);
   fz_node_fork (node2, node3);
 
-  fz_insert (frames, 0, num_frames, src);
-  ck_assert (fz_node_render (root_node, frames) == num_frames);
+  fz_insert (frames, 0, nframes, src);
+  ck_assert (fz_node_render (root_node,
+                             frames,
+                             &request) == nframes);
 
-  for (i = 0; i < num_frames; ++i)
+  for (i = 0; i < nframes; ++i)
     {
       ck_assert (fz_val_at (frames, i, real_t)
                  == (src[i] * 1.1) + (src[i] * 2.2 * 3.3));
