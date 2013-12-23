@@ -258,7 +258,7 @@ render_node (node_t *node,
 {
   uint_t i, j;
   node_t *parent;
-  size_t num_frames = fz_len (frames);
+  size_t num_frames = fz_len ((const ptr_t) frames);
   size_t num_parents = fz_len (node->parents);
 
   if (node->flags & NODE_RENDERED)

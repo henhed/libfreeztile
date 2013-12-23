@@ -33,7 +33,7 @@ struct list_s
   flags_t flags;
   int_t (*insert) (list_t *, uint_t, uint_t, ptr_t);
   int_t (*erase) (list_t *, uint_t, uint_t);
-  ptr_t (*at) (list_t *, uint_t);
+  ptr_t (*at) (const list_t *, uint_t);
 };
 
 /* Abstract list constuctor.  */
@@ -79,9 +79,11 @@ list_destructor (ptr_t ptr)
 
 /* Abstract list item getter.  */
 ptr_t
-fz_at (list_t *list, uint_t index)
+fz_at (const list_t *list, uint_t index)
 {
-  if (list == NULL || list->at == NULL || index >= fz_len (list))
+  if (list == NULL
+      || list->at == NULL
+      || index >= fz_len ((const ptr_t) list))
     return NULL;
 
   if (list->flags & LISTOPT_PTRS)
@@ -218,7 +220,7 @@ vector_length (const ptr_t list)
 
 /* Class `vector_c' implementation of `fz_at'.  */
 static ptr_t
-vector_at (list_t *list, uint_t index)
+vector_at (const list_t *list, uint_t index)
 {
   vector_t *self = (vector_t *) list;
   return self->items + (index * list->type_size);

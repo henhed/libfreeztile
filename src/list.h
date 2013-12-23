@@ -64,7 +64,7 @@ typedef struct list_s list_t;
 #define fz_erase_one(list, index) \
   fz_erase (list, index, 1)
 
-extern ptr_t fz_at (list_t *, uint_t);
+extern ptr_t fz_at (const list_t *, uint_t);
 extern int_t fz_insert (list_t *, uint_t, uint_t, ptr_t);
 extern int_t fz_erase (list_t *, uint_t, uint_t);
 extern int_t fz_clear (list_t *, size_t);
