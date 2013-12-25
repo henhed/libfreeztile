@@ -40,9 +40,9 @@ teardown ()
 START_TEST (test_form_shapes)
 {
   /* The correctness of shapes are hard to measure prorgamatically
-     so we render them into a CSV file so they can be inspected in
-     external chart tools.  */
-  FILE *csv = fopen ("check_form.csv", "w");
+     so we render them into a TSV file so they can be inspected in
+     an external chart tool such as Gnuplot.  */
+  FILE *tsv = fopen ("form_shapes.dat", "w");
   size_t nforms = 3;
   form_t *forms[] = {
     fz_new (form_c, SHAPE_SINE),
@@ -60,8 +60,11 @@ START_TEST (test_form_shapes)
     .srate = REQUEST_SRATE_DEFAULT,
     .access = REQUEST_ACCESS_INTERLEAVED
   };
-  char val[16]; /* Needs to hold at least "d.dd,\0" (a CSV cell).  */
+  const char *header = "Sine\tTriangle\tSquare\n";
+  char val[16]; /* Needs to hold at least "d.dd\t\0" (a TSV cell).  */
   uint_t i, j;
+
+  fputs (header, tsv);
 
   /* Render forms to frame buffers.  */
   for (i = 0; i < nforms; ++i)
@@ -83,16 +86,16 @@ START_TEST (test_form_shapes)
       for (j = 0; j < nforms; ++j)
         {
           sprintf (val,
-                   j == nforms - 1 ? "%.2f\n" : "%.2f,",
+                   j == nforms - 1 ? "%.2f\n" : "%.2f\t",
                    fz_val_at (framebufs[j], i, real_t));
-          fwrite (val, sizeof (char), strlen (val), csv);
+          fputs (val, tsv);
         }
     }
 
   for (i = 0; i < nforms; ++i)
     fz_del (framebufs[i]);
 
-  fclose (csv);
+  fclose (tsv);
 }
 END_TEST
 

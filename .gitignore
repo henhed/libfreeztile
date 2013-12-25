@@ -19,3 +19,4 @@ Makefile.in
 /src/stamp-h1
 /tests/check_*
 !/tests/check_*.c
+/tests/*.dat

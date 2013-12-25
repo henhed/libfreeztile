@@ -15,4 +15,5 @@ $ autoreconf --install
 $ ./configure
 $ make
 $ make check
+$ bash tests/plot.sh
 ```
