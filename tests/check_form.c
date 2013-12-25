@@ -18,6 +18,7 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include <check.h>
+#include <stdio.h>
 #include "form.h"
 #include "node.h"
 
@@ -35,27 +36,63 @@ teardown ()
   ck_assert_int_eq (fz_memusage (0), 0);
 }
 
-/* Test of triangle shaped form.  */
-START_TEST (test_triangle_form)
+/* Test form shapes.  */
+START_TEST (test_form_shapes)
 {
-  form_t *triangle = fz_new (form_c, SHAPE_TRIANGLE);
-  list_t *frames = fz_new_simple_vector (real_t);
+  /* The correctness of shapes are hard to measure prorgamatically
+     so we render them into a CSV file so they can be inspected in
+     external chart tools.  */
+  FILE *csv = fopen ("check_form.csv", "w");
+  size_t nforms = 3;
+  form_t *forms[] = {
+    fz_new (form_c, SHAPE_SINE),
+    fz_new (form_c, SHAPE_TRIANGLE),
+    fz_new (form_c, SHAPE_SQUARE)
+  };
+  list_t *framebufs[] = {
+    fz_new_simple_vector (real_t),
+    fz_new_simple_vector (real_t),
+    fz_new_simple_vector (real_t)
+  };
   size_t nframes = 256;
-  uint_t i;
-  voice_t *voice = fz_new (voice_c);
   request_t request = {
-    .voice = voice,
+    .voice = NULL,
     .srate = REQUEST_SRATE_DEFAULT,
     .access = REQUEST_ACCESS_INTERLEAVED
   };
+  char val[16]; /* Needs to hold at least "d.dd,\0" (a CSV cell).  */
+  uint_t i, j;
 
-  fz_clear (frames, nframes);
-  ck_assert (fz_node_render ((node_t *) triangle,
-                             frames,
-                             &request) == nframes);
-  fz_del (voice);
-  fz_del (frames);
-  fz_del (triangle);
+  /* Render forms to frame buffers.  */
+  for (i = 0; i < nforms; ++i)
+    {
+      request.voice = fz_new (voice_c);
+      fz_voice_press (request.voice, 440, 1);
+
+      fz_clear (framebufs[i], nframes);
+      ck_assert (fz_node_render ((node_t *) forms[i],
+                                 framebufs[i],
+                                 &request) == nframes);
+      fz_del (request.voice);
+      fz_del (forms[i]);
+    }
+
+  /* Write frame buffers to file.  */
+  for (i = 0; i < nframes; ++i)
+    {
+      for (j = 0; j < nforms; ++j)
+        {
+          sprintf (val,
+                   j == nforms - 1 ? "%.2f\n" : "%.2f,",
+                   fz_val_at (framebufs[j], i, real_t));
+          fwrite (val, sizeof (char), strlen (val), csv);
+        }
+    }
+
+  for (i = 0; i < nforms; ++i)
+    fz_del (framebufs[i]);
+
+  fclose (csv);
 }
 END_TEST
 
@@ -66,7 +103,7 @@ form_suite_create ()
   Suite *s = suite_create ("form");
   TCase *t = tcase_create ("form");
   tcase_add_checked_fixture (t, setup, teardown);
-  tcase_add_test (t, test_triangle_form);
+  tcase_add_test (t, test_form_shapes);
   suite_add_tcase (s, t);
   return s;
 }

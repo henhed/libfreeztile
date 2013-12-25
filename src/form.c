@@ -141,6 +141,7 @@ fz_form_set_shape (form_t *form, int_t shape)
 {
   uint_t i;
   size_t shape_size;
+  uint_t offset; /* Used to align triangle with sine and square.  */
 
   if (form == NULL)
     return -EINVAL;
@@ -157,13 +158,16 @@ fz_form_set_shape (form_t *form, int_t shape)
       break;
     case SHAPE_TRIANGLE:
       for (i = 0; i < shape_size; ++i)
-        fz_val_at (form->shape, i, real_t)
-          = (fabs ((((real_t) i * 4) / shape_size) - 2) - 1) * -1;
+        {
+          offset = (i - (shape_size / 4)) % shape_size;
+          fz_val_at (form->shape, i, real_t)
+            = (fabs ((((real_t) offset * 4) / shape_size) - 2) - 1);
+        }
       break;
     case SHAPE_SQUARE:
       for (i = 0; i < shape_size; ++i)
         fz_val_at (form->shape, i, real_t)
-          = i < (shape_size / 2) ? -1. : 1.;
+          = i < (shape_size / 2) ? 1 : -1;
           break;
     default:
       return -EINVAL;
