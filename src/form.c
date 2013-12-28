@@ -32,6 +32,7 @@ typedef struct form_s
 {
   node_t __parent;
   list_t *shape;
+  real_t shifting;
   list_t *vstates;
 } form_t;
 
@@ -79,6 +80,8 @@ form_render (node_t *node, const request_t *request)
   uint_t i = 0;
   size_t nframes = fz_len (node->framebuf);
   size_t period = fz_len (form->shape);
+  real_t pos;
+  real_t shift;
   real_t freq;
   real_t fwidth;
   struct voice_state_s *state;
@@ -95,14 +98,38 @@ form_render (node_t *node, const request_t *request)
 
   for (; i < nframes; ++i)
     {
+      pos = state->pos;
+
+      if (form->shifting != .5) /* Shifting is not centered.  */
+        {
+          if (period == 2)
+            /* Special case for SQUARE since peak shifting
+               has no effect when there are no slopes.  */
+            pos = pos < form->shifting ? 0 : 0.5;
+          else
+            {
+              /* Shifting assumes that the shape alignment puts its
+                 peak and trough at .25 and .75, respectively.  */
+              shift = form->shifting / 2;
+              if (pos < shift)
+                pos = pos / shift * .25;
+              else if (pos < .5)
+                pos = (pos - shift) / (.5 - shift) * .25 + .25;
+              else if (pos < 1 - shift)
+                pos = (pos - .5) / (.5 - shift) * .25 + .5;
+              else
+                pos = ((pos - (1 - shift)) / shift) * .25 + .75;
+            }
+        }
+
       fz_val_at (node->framebuf, i, real_t)
         = fz_val_at (form->shape,
-                     (uint_t) (state->pos * period),
+                     (uint_t) (pos * period) % period,
                      real_t);
 
       state->pos += fwidth;
-      while (state->pos >= 1.)
-        state->pos -= 1.;
+      while (state->pos >= 1)
+        state->pos -= 1;
     }
 
   return nframes;
@@ -118,6 +145,7 @@ form_constructor (ptr_t ptr, va_list *args)
 
   self->__parent.render = form_render;
   self->shape = fz_new_simple_vector (real_t);
+  self->shifting = 0.5;
   self->vstates = fz_new_simple_vector (struct voice_state_s);
   fz_form_set_shape (self, shape);
 
@@ -159,7 +187,7 @@ fz_form_set_shape (form_t *form, int_t shape)
     case SHAPE_TRIANGLE:
       for (i = 0; i < shape_size; ++i)
         {
-          offset = (i - (shape_size / 4)) % shape_size;
+          offset = ((i - (shape_size / 4)) + shape_size) % shape_size;
           fz_val_at (form->shape, i, real_t)
             = (fabs ((((real_t) offset * 4) / shape_size) - 2) - 1);
         }
