@@ -64,6 +64,10 @@ typedef struct list_s list_t;
 #define fz_erase_one(list, index) \
   fz_erase (list, index, 1)
 
+#define fz_list_data(list) \
+  (fz_instance_of ((const ptr_t) list, vector_c) == TRUE \
+   ? fz_at (list, 0) : NULL)
+
 extern ptr_t fz_at (const list_t *, uint_t);
 extern int_t fz_insert (list_t *, uint_t, uint_t, ptr_t);
 extern int_t fz_erase (list_t *, uint_t, uint_t);

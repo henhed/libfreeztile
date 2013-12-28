@@ -237,16 +237,16 @@ fz_node_join (node_t *node, node_t *parent)
 
 /* Reset NODE and all its ancestors as preparation for `render_node'.  */
 static void
-reset_node (node_t *node, size_t num_frames)
+reset_node (node_t *node, size_t nframes)
 {
   uint_t i = 0;
-  size_t num_parents = fz_len (node->parents);
+  size_t nparents = fz_len (node->parents);
 
-  for (; i < num_parents; ++i)
-    reset_node (fz_ref_at (node->parents, i, node_t), num_frames);
+  for (; i < nparents; ++i)
+    reset_node (fz_ref_at (node->parents, i, node_t), nframes);
 
   node->flags &= ~NODE_RENDERED;
-  fz_clear (node->framebuf, num_frames);
+  fz_clear (node->framebuf, nframes);
 }
 
 /* Render NODE and all its ancestors into NODEs internal buffer using
@@ -258,80 +258,96 @@ render_node (node_t *node,
 {
   uint_t i, j;
   node_t *parent;
-  size_t num_frames = fz_len ((const ptr_t) frames);
-  size_t num_parents = fz_len (node->parents);
+  size_t nframes = fz_len ((const ptr_t) frames);
+  size_t nparents = fz_len (node->parents);
+  real_t *indata, *outdata, *pdata;
 
   if (node->flags & NODE_RENDERED)
     return (int_t) fz_len (node->framebuf);
 
-  node->flags |= NODE_RENDERED;
+  outdata = fz_list_data (node->framebuf);
+  if (outdata == NULL)
+    return -EINVAL;
 
-  if (num_parents == 0)
+  if (nparents == 0)
     {
-      /* FIXME: Use list copy function instead of `memcpy'.  */
-      memcpy (fz_at (node->framebuf, 0),
-              fz_at (frames, 0),
-              num_frames * sizeof (real_t));
+      indata = fz_list_data (frames);
+      if (indata == NULL)
+        return -EINVAL;
+      memcpy (outdata, indata, nframes * sizeof (real_t));
     }
   else
-    for (i = 0; i < num_parents; ++i)
+    for (i = 0; i < nparents; ++i)
       {
         parent = fz_ref_at (node->parents, i, node_t);
         render_node (parent, frames, request);
-        for (j = 0; j < num_frames; ++j)
-          fz_val_at (node->framebuf, j, real_t)
-            += fz_val_at (parent->framebuf, j, real_t);
+        pdata = fz_list_data (parent->framebuf);
+        if (pdata == NULL)
+          continue;
+        for (j = 0; j < nframes; ++j)
+          outdata[j] += pdata[j];
       }
 
+  node->flags |= NODE_RENDERED;
   if (node->render != NULL)
-    return node->render(node, request);
+    return node->render (node, request);
 
-  return (int_t) fz_len (node->framebuf);
+  return nframes;
 }
 
-/* Render frames from NODE into BUFFER.  */
+/* Render frames from NODE into FRAMES.  */
 int_t
 fz_node_render (node_t *node,
-                list_t *buffer,
+                list_t *frames,
                 const request_t *request)
 {
   uint_t i;
   int_t err;
+  list_t *leaves;
   size_t nleaves;
   node_t *anchor;
-  list_t *leaf_nodes;
+  real_t *fdata, *adata;
 
-  if (node == NULL || buffer == NULL || request == NULL)
+  if (node == NULL || frames == NULL || request == NULL)
     return -EINVAL;
 
+  fdata = fz_list_data (frames);
+  if (fdata == NULL)
+    return -EINVAL; /* FRAMES is empty or not a vector.  */
+
   /* Find anchor node.  */
-  leaf_nodes = get_leaf_nodes (node, NULL);
-  nleaves = fz_len (leaf_nodes);
+  leaves = get_leaf_nodes (node, NULL);
+  nleaves = fz_len (leaves);
 
   if (nleaves == 0)
     anchor = node;
   else if (nleaves == 1)
-    anchor = fz_ref_at (leaf_nodes, 0, node_t);
+    anchor = fz_ref_at (leaves, 0, node_t);
   else
     {
+      /* TODO: If NLEAVES is greater than 1, inflate frames as
+         requested by request->access instead of just joining
+         leaves into a new anchor.  */
       anchor = fz_new (node_c);
-      fz_node_fork (fz_ref_at (leaf_nodes, 0, node_t), anchor);
+      fz_node_fork (fz_ref_at (leaves, 0, node_t), anchor);
       for (i = 1; i < nleaves; ++i)
-        fz_node_join (anchor, fz_ref_at (leaf_nodes, i, node_t));
+        fz_node_join (anchor, fz_ref_at (leaves, i, node_t));
     }
 
-  fz_del (leaf_nodes);
+  fz_del (leaves); /* Allocated in `get_leaf_nodes'.  */
 
   /* Render node tree.  */
-  reset_node (anchor, fz_len (buffer));
-  err = render_node (anchor, buffer, request);
+  reset_node (anchor, fz_len (frames));
+  err = render_node (anchor, frames, request);
   if (err < 0)
     return err;
 
-  /* FIXME: Use list copy function instead of `memcpy'.  */
-  memcpy (fz_at (buffer, 0),
-          fz_at (anchor->framebuf, 0),
-          err * sizeof (real_t));
+  adata = fz_list_data (anchor->framebuf);
+  if (adata != NULL)
+    /* ADATA can only be NULL if the anchors frame buffer is empty
+       but `reset_node' clears it to the size of FRAMES so that should
+       never happen.  */
+    memcpy (fdata, adata, err * sizeof (real_t));
 
   return err;
 }
