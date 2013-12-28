@@ -116,3 +116,14 @@ fz_cmp (const ptr_t a, const ptr_t b)
 
   return 0;
 }
+
+/* Check if OBJECT is an instance of CLASS. Return TRUE if so, FALSE otherwise.
+   Inherited classes are not taken into consideration.  */
+bool_t
+fz_instance_of (const ptr_t object, const class_t *class)
+{
+  if (object == NULL || class == NULL)
+    return FALSE;
+
+  return  (*((const class_t **) object)) == class ? TRUE : FALSE;
+}

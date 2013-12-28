@@ -31,6 +31,10 @@ typedef struct {
   int_t *c;
 } test_class_t;
 
+typedef struct {
+  class_t *__class;
+} second_class_t;
+
 /* Test class instance instantiated in `setup'.  */
 test_class_t *test_instance = NULL;
 
@@ -97,6 +101,11 @@ static const class_t _TEST_ = {
   test_length,
   test_clone,
   test_compare
+};
+
+static const class_t _TEST2_ = {
+  sizeof (second_class_t),
+  NULL, NULL, NULL, NULL, NULL
 };
 
 /* Pre-test hook.  */
@@ -194,6 +203,25 @@ START_TEST (test_fz_cmp)
 }
 END_TEST
 
+/* Test for `fz_instance_of'.  */
+START_TEST (test_fz_instance_of)
+{
+  test_class_t *obj1 = fz_new (&_TEST_, 0, 0);
+  second_class_t *obj2 = fz_new (&_TEST2_);
+
+  ck_assert (fz_instance_of (NULL, NULL) == FALSE);
+  ck_assert (fz_instance_of (obj1, NULL) == FALSE);
+  ck_assert (fz_instance_of (NULL, &_TEST_) == FALSE);
+  ck_assert (fz_instance_of (obj1, &_TEST2_) == FALSE);
+  ck_assert (fz_instance_of (obj2, &_TEST_) == FALSE);
+  ck_assert (fz_instance_of (obj1, &_TEST_) == TRUE);
+  ck_assert (fz_instance_of (obj2, &_TEST2_) == TRUE);
+
+  fz_del (obj1);
+  fz_del (obj2);
+}
+END_TEST
+
 /* Initiate a class test suite struct.  */
 Suite *
 class_suite_create ()
@@ -206,6 +234,7 @@ class_suite_create ()
   tcase_add_test (t, test_fz_len);
   tcase_add_test (t, test_fz_clone);
   tcase_add_test (t, test_fz_cmp);
+  tcase_add_test (t, test_fz_instance_of);
   suite_add_tcase (s, t);
   return s;
 }

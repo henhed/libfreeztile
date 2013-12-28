@@ -41,6 +41,7 @@ extern int_t fz_del (ptr_t);
 extern size_t fz_len (const ptr_t);
 extern ptr_t fz_clone (const ptr_t);
 extern int_t fz_cmp (const ptr_t, const ptr_t);
+extern bool_t fz_instance_of (const ptr_t, const class_t *);
 
 __END_DECLS
 
