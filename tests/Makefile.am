@@ -4,6 +4,7 @@ TESTS =          \
     check_class  \
     check_list   \
     check_voice  \
+    check_mod    \
     check_node   \
     check_form
 check_PROGRAMS = \
@@ -11,6 +12,7 @@ check_PROGRAMS = \
     check_class  \
     check_list   \
     check_voice  \
+    check_mod    \
     check_node   \
     check_form
 check_malloc_SOURCES = check_malloc.c $(top_builddir)/src/malloc.h
@@ -25,6 +27,9 @@ check_list_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
 check_voice_SOURCES = check_voice.c $(top_builddir)/src/voice.h
 check_voice_CFLAGS = @CHECK_CFLAGS@
 check_voice_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
+check_mod_SOURCES = check_mod.c $(top_builddir)/src/mod.h
+check_mod_CFLAGS = @CHECK_CFLAGS@
+check_mod_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
 check_node_SOURCES = check_node.c $(top_builddir)/src/node.h
 check_node_CFLAGS = @CHECK_CFLAGS@
 check_node_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@

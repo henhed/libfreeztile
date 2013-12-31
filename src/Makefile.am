@@ -6,6 +6,7 @@ libfreeztile_la_SOURCES =        \
     class.h class.c              \
     list.h list.c                \
     voice.h voice.c              \
+    mod.h private-mod.h mod.c    \
     node.h private-node.h node.c \
     form.h form.c
 libfreeztile_la_LIBADD = -lm
