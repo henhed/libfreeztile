@@ -9,11 +9,16 @@ AC_CONFIG_MACRO_DIR([m4])
 # Set build strictness
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
+# automake 1.12 seems to require AM_PROG_AR, but older
+# versions doesn't recognize it
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+
 # Set up libtool (used by src/Makefile.am)
 LT_INIT()
 
 # Determine a C compiler to use.
 AC_PROG_CC()
+AM_PROG_CC_C_O()
 
 # Check for libcheck C unit testing library
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])

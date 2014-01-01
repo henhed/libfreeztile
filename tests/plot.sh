@@ -1,7 +1,7 @@
 #!/bin/bash
 # Plot all test .dat output files using Gnuplot
 
-test -n $(which gnuplot) || {
+test -n "$(which gnuplot)" || {
   echo "Please install gnuplot" 1>&2; exit 1; }
 
 cd "$(dirname ""$0"")"
