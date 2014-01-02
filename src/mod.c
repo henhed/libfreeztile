@@ -21,6 +21,12 @@
 #include "private-mod.h"
 #include "class.h"
 #include "list.h"
+#include "malloc.h"
+
+static struct voice_state_s {
+  voice_t *voice;
+  ptr_t data;
+};
 
 /* Modulator constructor.  */
 static ptr_t
@@ -28,6 +34,7 @@ mod_constructor (ptr_t ptr, va_list *args)
 {
   mod_t *self = (mod_t *) ptr;
   self->stepbuf = fz_new_simple_vector (real_t);
+  self->vstates = fz_new_simple_vector (struct voice_state_s);
   return self;
 }
 
@@ -36,8 +43,58 @@ static ptr_t
 mod_destructor (ptr_t ptr)
 {
   mod_t *self = (mod_t *) ptr;
+  uint_t i;
+  size_t nvstates = fz_len (self->vstates);
+
+  for (i = 0; i < nvstates; ++i)
+    fz_free (fz_ref_at (self->vstates, i,
+                        struct voice_state_s)->data);
+
+  fz_del (self->vstates);
   fz_del (self->stepbuf);
   return self;
+}
+
+/* Get state data for the given MODULATOR and VOICE. If no data
+   exists, SIZE bytes are allocetd and returned.  */
+ptr_t
+fz_mod_state_data (mod_t *modulator, voice_t *voice, size_t size)
+{
+  int_t i;
+  size_t nstates;
+  struct voice_state_s *state;
+  struct voice_state_s newstate;
+
+  if (modulator == NULL || voice == NULL)
+    return NULL;
+
+  nstates = fz_len (modulator->vstates);
+  for (i = 0; i < nstates; ++i)
+    {
+      state = fz_ref_at (modulator->vstates, i, struct voice_state_s);
+      if (state->voice == voice)
+        return state->data;
+    }
+
+  if (size == 0)
+    return NULL;
+
+  newstate.voice = voice;
+  newstate.data = fz_malloc (size);
+
+  i = fz_push_one (modulator->vstates, &newstate);
+  if (i >= 0)
+    return fz_ref_at (modulator->vstates, i,
+                      struct voice_state_s)->data;
+
+  return NULL;
+}
+
+/* Render node modulation input inte MODULATOR buffer.  */
+int_t
+fz_mod_render (mod_t *modulator, const request_t *request)
+{
+  return 0;
 }
 
 /* `mod_c' class descriptor.  */

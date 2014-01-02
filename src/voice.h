@@ -24,7 +24,16 @@
 
 __BEGIN_DECLS
 
+#define REQUEST_SRATE_DEFAULT 44100
+#define REQUEST_ACCESS_INTERLEAVED 0
+#define REQUEST_ACCESS_NONINTERLEAVED 1
+
 typedef struct voice_s voice_t;
+typedef struct request_s {
+  voice_t *voice;
+  real_t srate;
+  int_t access;
+} request_t;
 
 #define TWELFTH_ROOT_OF_TWO 1.05946309435929526
 

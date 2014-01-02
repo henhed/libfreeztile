@@ -20,3 +20,4 @@ Makefile.in
 /tests/check_*
 !/tests/check_*.c
 /tests/*.dat
+/tests/test-suite.log

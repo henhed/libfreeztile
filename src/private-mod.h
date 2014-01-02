@@ -23,15 +23,22 @@
 #include "mod.h"
 #include "class.h"
 #include "list.h"
+#include "voice.h"
 
 __BEGIN_DECLS
+
+#define fz_mod_state(mod, voice, type) \
+  ((type *) fz_mod_state_data (mod, voice, sizeof (type)))
 
 /* Modulator class struct.  */
 struct mod_s
 {
   const class_t *__class;
   list_t *stepbuf;
+  list_t *vstates;
 };
+
+extern ptr_t fz_mod_state_data (mod_t *, voice_t *, size_t);
 
 __END_DECLS
 
