@@ -23,7 +23,7 @@
 #include "list.h"
 #include "malloc.h"
 
-static struct voice_state_s {
+struct voice_state_s {
   voice_t *voice;
   ptr_t data;
 };

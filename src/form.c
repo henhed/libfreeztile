@@ -37,7 +37,7 @@ typedef struct form_s
 } form_t;
 
 /* Struct to keep track of individual voice states.  */
-static struct voice_state_s
+struct voice_state_s
 {
   voice_t *voice;
   real_t pos;
