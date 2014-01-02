@@ -1,5 +1,5 @@
 /* Private header file exposing mod class struct for subclassing.
-   Copyright (C) 2013 Henrik Hedelund.
+   Copyright (C) 2013-2014 Henrik Hedelund.
 
    This file is part of libfreeztile.
 

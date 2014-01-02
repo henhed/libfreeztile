@@ -1,5 +1,5 @@
 /* Memory allocation related functions.
-   Copyright (C) 2013 Henrik Hedelund.
+   Copyright (C) 2013-2014 Henrik Hedelund.
 
    This file is part of libfreeztile.
 

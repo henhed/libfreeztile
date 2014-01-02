@@ -1,5 +1,5 @@
 /* Header file for list types functions interface.
-   Copyright (C) 2013 Henrik Hedelund.
+   Copyright (C) 2013-2014 Henrik Hedelund.
 
    This file is part of libfreeztile.
 
