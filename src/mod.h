@@ -27,7 +27,7 @@ __BEGIN_DECLS
 
 typedef struct mod_s mod_t;
 
-extern int_t fz_mod_render (mod_t *, const request_t *);
+extern int_t fz_mod_render (mod_t *, size_t, const request_t *);
 
 extern const class_t *mod_c;
 

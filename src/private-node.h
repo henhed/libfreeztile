@@ -34,7 +34,7 @@ struct node_s
   list_t *children;
   list_t *framebuf;
   flags_t flags;
-  int_t (*render) (node_t *, const request_t *request);
+  int_t (*render) (node_t *, const request_t *);
 };
 
 __END_DECLS

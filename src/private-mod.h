@@ -36,6 +36,7 @@ struct mod_s
   const class_t *__class;
   list_t *stepbuf;
   list_t *vstates;
+  int_t (*render) (mod_t *, const request_t *);
 };
 
 extern ptr_t fz_mod_state_data (mod_t *, voice_t *, size_t);

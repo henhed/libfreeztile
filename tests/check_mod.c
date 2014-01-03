@@ -30,11 +30,26 @@ typedef struct sample_mod_s
   mod_t __parent;
 } sample_mod_t;
 
+/* `fz_mod_render' callback.  */
+static int_t
+sample_mod_renderer (mod_t *mod, const request_t *request)
+{
+  uint_t i;
+  size_t nframes = fz_len (mod->stepbuf);
+  real_t step = 1. / nframes;
+
+  for (i = 0; i < nframes; ++i)
+    fz_val_at (mod->stepbuf, i, real_t) = step * i;
+
+  return nframes;
+}
+
 static ptr_t
 sample_mod_constructor (ptr_t ptr, va_list *args)
 {
   sample_mod_t *self = (sample_mod_t *)
     ((const class_t *) mod_c)->construct (ptr, args);
+  self->__parent.render = sample_mod_renderer;
   return self;
 }
 
@@ -119,6 +134,55 @@ START_TEST (test_fz_mod_state_data)
 }
 END_TEST
 
+/* Test for `fz_mod_render'.  */
+START_TEST (test_fz_mod_render)
+{
+  size_t nframes = 10;
+  int_t err;
+  uint_t i;
+  real_t step, prev;
+  request_t request = REQUEST_DEFAULT (fz_new (voice_c));
+
+  err = fz_mod_render (modulator, nframes, &request);
+  fail_unless (err == nframes,
+               "Frames rendered should be %u, found %d.",
+               nframes, err);
+
+  prev = -1;
+  for (i = 0; i < nframes; ++i)
+    {
+      /* This test inspects the private moulator buffer which is not
+         part of the public interface. It is only to here to asserts
+         that our callback (`sample_mod_renderer') was executed.  */
+      step = fz_val_at (modulator->stepbuf, i, real_t);
+      fail_unless (step > prev,
+                   "Expected %f to be bigger than %f but it was not.",
+                   step, prev);
+      prev = step;
+    }
+
+  err = fz_mod_render (NULL, nframes, &request);
+  fail_unless (err < 0,
+               "Expected renderer to return a negative error code "
+               "when passed a NULL modulator but %d was returned.",
+               err);
+
+  err = fz_mod_render (modulator, 0, &request);
+  fail_unless (err < 0,
+               "Expected renderer to return a negative error code "
+               "when asked for zero frames but %d was returned.",
+               err);
+
+  err = fz_mod_render (modulator, nframes, NULL);
+  fail_unless (err < 0,
+               "Expected renderer to return a negative error code "
+               "when passed a NULL request but %d was returned.",
+               err);
+
+  fz_del (request.voice);
+}
+END_TEST
+
 /* Initiate a modulator test suite struct.  */
 Suite *
 mod_suite_create ()
@@ -127,6 +191,7 @@ mod_suite_create ()
   TCase *t = tcase_create ("modulator");
   tcase_add_checked_fixture (t, setup, teardown);
   tcase_add_test (t, test_fz_mod_state_data);
+  tcase_add_test (t, test_fz_mod_render);
   suite_add_tcase (s, t);
   return s;
 }

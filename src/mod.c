@@ -17,6 +17,7 @@
    along with libfreeztile; see the file COPYING.  If not see
    <http://www.gnu.org/licenses/>.  */
 
+#include <errno.h>
 #include "mod.h"
 #include "private-mod.h"
 #include "class.h"
@@ -35,6 +36,7 @@ mod_constructor (ptr_t ptr, va_list *args)
   mod_t *self = (mod_t *) ptr;
   self->stepbuf = fz_new_simple_vector (real_t);
   self->vstates = fz_new_simple_vector (struct voice_state_s);
+  self->render = NULL;
   return self;
 }
 
@@ -90,11 +92,19 @@ fz_mod_state_data (mod_t *modulator, voice_t *voice, size_t size)
   return NULL;
 }
 
-/* Render node modulation input inte MODULATOR buffer.  */
+/* Render NFRAMES of node modulation input inte MOD buffer.  */
 int_t
-fz_mod_render (mod_t *modulator, const request_t *request)
+fz_mod_render (mod_t *mod, size_t nframes, const request_t *request)
 {
-  return 0;
+  if (mod == NULL || nframes == 0 || request == NULL)
+    return -EINVAL;
+
+  fz_clear (mod->stepbuf, nframes);
+
+  if (mod->render != NULL)
+    return mod->render (mod, request);
+
+  return fz_len (mod->stepbuf);
 }
 
 /* `mod_c' class descriptor.  */
