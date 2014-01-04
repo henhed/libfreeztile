@@ -24,9 +24,17 @@
 #include "defs.h"
 #include "class.h"
 #include "list.h"
+#include "mod.h"
 
 #define NODE_NONE 0
 #define NODE_RENDERED (1 << 0)
+
+/* Mod connection struct.  */
+struct modconn_s {
+  mod_t *mod;
+  uint_t slot;
+  ptr_t args;
+};
 
 /* Node constructor.  */
 static ptr_t
@@ -36,6 +44,7 @@ node_constructor (ptr_t ptr, va_list *args)
   self->parents = fz_new_pointer_vector (node_t *);
   self->children = fz_new_owning_vector (node_t *);
   self->framebuf = fz_new_simple_vector (real_t);
+  self->mods = fz_new_simple_vector (struct modconn_s);
   self->flags = NODE_NONE;
   self->render = NULL;
   return self;
@@ -46,9 +55,17 @@ static ptr_t
 node_destructor (ptr_t ptr)
 {
   node_t *self = (node_t *) ptr;
+  size_t nmods = fz_len (self->mods);
+  uint_t i;
+
+  /* Modulators are retained in `fz_node_connect'.  */
+  for (i = 0; i < nmods; ++i)
+    fz_del (fz_ref_at (self->mods, i, struct modconn_s)->mod);
+
   fz_del (self->parents);
   fz_del (self->children);
   fz_del (self->framebuf);
+  fz_del (self->mods);
   return self;
 }
 
@@ -235,6 +252,73 @@ fz_node_join (node_t *node, node_t *parent)
   return fz_push_one (parent->children, node);
 }
 
+/* Get `modconn_s' pointer for given SLOT.  */
+static struct modconn_s *
+get_modconn (node_t *self, uint_t slot)
+{
+  struct modconn_s *conn;
+  size_t nmods;
+  uint_t i;
+
+  if (self == NULL)
+    return NULL;
+
+  nmods = fz_len (self->mods);
+  for (i = 0; i < nmods; ++i)
+    {
+      conn = fz_ref_at (self->mods, i, struct modconn_s);
+      if (conn->slot == slot)
+        return conn;
+    }
+
+  return NULL;
+}
+
+/* Return modulator arg pointer for given SLOT.  */
+ptr_t
+fz_node_modargs (node_t *self, uint_t slot)
+{
+  struct modconn_s *conn = get_modconn (self, slot);
+  return conn == NULL ? NULL : conn->args;
+}
+
+/* Get modulation buffer from SLOT based on SEED.  */
+const real_t *
+fz_node_modulate (node_t *self, uint_t slot,
+                  real_t seed, real_t lo, real_t up)
+{
+  const list_t *modulation;
+  struct modconn_s *conn = get_modconn (self, slot);
+  if (conn == NULL)
+    return NULL;
+
+  modulation = fz_modulate (conn->mod, seed, lo, up);
+  if (modulation == NULL)
+    return NULL;
+
+  return (const real_t *) fz_list_data (modulation);
+}
+
+/* Connect MOD to SELF on SLOT.  */
+int_t
+fz_node_connect (node_t *self, mod_t *mod, uint_t slot, ptr_t args)
+{
+  struct modconn_s *oldconn;
+  struct modconn_s newconn = {mod, slot, args};
+
+  if (self == NULL || newconn.mod == NULL)
+    return EINVAL;
+
+  oldconn = get_modconn (self, newconn.slot);
+  if (oldconn != NULL)
+    return EINVAL; /* SLOT already in use.  */
+
+  fz_retain (newconn.mod);
+  fz_push_one (self->mods, &newconn);
+
+  return 0;
+}
+
 /* Reset NODE and all its ancestors as preparation for `render_node'.  */
 static void
 reset_node (node_t *node, size_t nframes)
@@ -305,6 +389,7 @@ fz_node_render (node_t *node,
   int_t err;
   list_t *leaves;
   size_t nleaves;
+  size_t nmods;
   node_t *anchor;
   real_t *fdata, *adata;
 
@@ -335,6 +420,15 @@ fz_node_render (node_t *node,
     }
 
   fz_del (leaves); /* Allocated in `get_leaf_nodes'.  */
+
+  /* Render modulators.  */
+  nmods = fz_len (node->mods);
+  for (i = 0; i < nmods; ++i)
+    /* FIXME: Render mod only once even though it might be connected
+              to multiple slots.  */
+    fz_mod_render (fz_ref_at (node->mods, i, struct modconn_s)->mod,
+                   fz_len (frames),
+                   request);
 
   /* Render node tree.  */
   reset_node (anchor, fz_len (frames));
