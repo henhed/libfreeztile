@@ -115,15 +115,17 @@ fz_mod_render (mod_t *self, size_t nframes, const request_t *request)
   return fz_len (self->stepbuf);
 }
 
-/* Apply modulation from SELF on OUT buffer.  */
+/* Apply modulation from rendered SELF on OUT buffer using LO and UP
+   as lower and upper limit.  */
 int_t
-fz_mod_apply (const mod_t *self, list_t *out)
+fz_mod_apply (const mod_t *self, list_t *out, real_t lo, real_t up)
 {
   real_t *moddata;
   real_t *outdata;
   size_t modsize;
   size_t outsize;
   size_t napplied = 0;
+  real_t range = up - lo;
   uint_t i;
 
   if (self == NULL || out == NULL)
@@ -133,21 +135,19 @@ fz_mod_apply (const mod_t *self, list_t *out)
   outsize = fz_len (out);
   moddata = (real_t *) fz_list_data (self->stepbuf);
   outdata = (real_t *) fz_list_data (out);
+  if (outdata == NULL)
+    return -EINVAL; /* OUT is not a vector.  */
 
   napplied = (modsize < outsize ? modsize : outsize);
-  if (outdata == NULL)
-    for (i = 0; i < napplied; ++i)
-      fz_val_at (out, i, real_t) *= moddata[i];
-  else
-    for (i = 0; i < napplied; ++i)
-      outdata[i] *= moddata[i];
+  for (i = 0; i < napplied; ++i)
+    outdata[i] *= ((moddata[i] * range) + lo);
 
   return napplied;
 }
 
 /* Return a buffer whith values modulated around the given SEED.  */
 const list_t *
-fz_modulate (const mod_t *self, real_t seed)
+fz_modulate (const mod_t *self, real_t seed, real_t lo, real_t up)
 {
   real_t *moddata;
   size_t modsize;
@@ -163,7 +163,7 @@ fz_modulate (const mod_t *self, real_t seed)
   for (i = 0; i < modsize; ++i)
     moddata[i] = seed;
 
-  if (fz_mod_apply (self, self->modbuf) < 0)
+  if (fz_mod_apply (self, self->modbuf, lo, up) < 0)
     return NULL;
 
   return self->modbuf;

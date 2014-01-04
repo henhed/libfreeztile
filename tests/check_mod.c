@@ -149,7 +149,7 @@ START_TEST (test_fz_mod_render)
                "Frames rendered should be %u, found %d.",
                nframes, err);
 
-  modbuf = fz_modulate (modulator, 1);
+  modbuf = fz_modulate_unorm (modulator, 1);
   fail_unless (err == nframes,
                "Modulated frames should be %u, found %d.",
                nframes, err);

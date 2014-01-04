@@ -26,11 +26,17 @@
 
 __BEGIN_DECLS
 
+#define fz_modulate_snorm(mod, seed) \
+  fz_modulate (mod, seed, -1,  1)
+
+#define fz_modulate_unorm(mod, seed) \
+  fz_modulate (mod, seed, 0,  1)
+
 typedef struct mod_s mod_t;
 
 extern int_t fz_mod_render (mod_t *, size_t, const request_t *);
-extern int_t fz_mod_apply (const mod_t *, list_t *);
-extern const list_t * fz_modulate (const mod_t *, real_t);
+extern int_t fz_mod_apply (const mod_t *, list_t *, real_t, real_t);
+extern const list_t * fz_modulate (const mod_t *, real_t, real_t, real_t);
 
 extern const class_t *mod_c;
 
