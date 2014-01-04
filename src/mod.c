@@ -35,8 +35,10 @@ mod_constructor (ptr_t ptr, va_list *args)
 {
   mod_t *self = (mod_t *) ptr;
   self->stepbuf = fz_new_simple_vector (real_t);
+  self->modbuf = fz_new_simple_vector (real_t);
   self->vstates = fz_new_simple_vector (struct voice_state_s);
   self->render = NULL;
+  self->freestate = NULL;
   return self;
 }
 
@@ -47,12 +49,18 @@ mod_destructor (ptr_t ptr)
   mod_t *self = (mod_t *) ptr;
   uint_t i;
   size_t nvstates = fz_len (self->vstates);
+  struct voice_state_s *state;
 
   for (i = 0; i < nvstates; ++i)
-    fz_free (fz_ref_at (self->vstates, i,
-                        struct voice_state_s)->data);
+    {
+      state = fz_ref_at (self->vstates, i, struct voice_state_s);
+      if (self->freestate != NULL)
+        self->freestate (self, state->data);
+      fz_free (state->data);
+    }
 
   fz_del (self->vstates);
+  fz_del (self->modbuf);
   fz_del (self->stepbuf);
   return self;
 }
@@ -92,19 +100,73 @@ fz_mod_state_data (mod_t *modulator, voice_t *voice, size_t size)
   return NULL;
 }
 
-/* Render NFRAMES of node modulation input inte MOD buffer.  */
+/* Render NFRAMES of node modulation input into MOD buffer.  */
 int_t
-fz_mod_render (mod_t *mod, size_t nframes, const request_t *request)
+fz_mod_render (mod_t *self, size_t nframes, const request_t *request)
 {
-  if (mod == NULL || nframes == 0 || request == NULL)
+  if (self == NULL || nframes == 0 || request == NULL)
     return -EINVAL;
 
-  fz_clear (mod->stepbuf, nframes);
+  fz_clear (self->stepbuf, nframes);
 
-  if (mod->render != NULL)
-    return mod->render (mod, request);
+  if (self->render != NULL)
+    return self->render (self, request);
 
-  return fz_len (mod->stepbuf);
+  return fz_len (self->stepbuf);
+}
+
+/* Apply modulation from SELF on OUT buffer.  */
+int_t
+fz_mod_apply (const mod_t *self, list_t *out)
+{
+  real_t *moddata;
+  real_t *outdata;
+  size_t modsize;
+  size_t outsize;
+  size_t napplied = 0;
+  uint_t i;
+
+  if (self == NULL || out == NULL)
+    return -EINVAL;
+
+  modsize = fz_len (self->stepbuf);
+  outsize = fz_len (out);
+  moddata = (real_t *) fz_list_data (self->stepbuf);
+  outdata = (real_t *) fz_list_data (out);
+
+  napplied = (modsize < outsize ? modsize : outsize);
+  if (outdata == NULL)
+    for (i = 0; i < napplied; ++i)
+      fz_val_at (out, i, real_t) *= moddata[i];
+  else
+    for (i = 0; i < napplied; ++i)
+      outdata[i] *= moddata[i];
+
+  return napplied;
+}
+
+/* Return a buffer whith values modulated around the given SEED.  */
+const list_t *
+fz_modulate (const mod_t *self, real_t seed)
+{
+  real_t *moddata;
+  size_t modsize;
+  uint_t i;
+
+  if (self == NULL)
+    return NULL;
+
+  fz_clear (self->modbuf, fz_len (self->stepbuf));
+  moddata = (real_t *) fz_list_data (self->modbuf);
+  modsize = fz_len (self->modbuf);
+
+  for (i = 0; i < modsize; ++i)
+    moddata[i] = seed;
+
+  if (fz_mod_apply (self, self->modbuf) < 0)
+    return NULL;
+
+  return self->modbuf;
 }
 
 /* `mod_c' class descriptor.  */

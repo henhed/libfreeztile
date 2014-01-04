@@ -137,6 +137,7 @@ END_TEST
 /* Test for `fz_mod_render'.  */
 START_TEST (test_fz_mod_render)
 {
+  const list_t *modbuf;
   size_t nframes = 10;
   int_t err;
   uint_t i;
@@ -148,13 +149,15 @@ START_TEST (test_fz_mod_render)
                "Frames rendered should be %u, found %d.",
                nframes, err);
 
+  modbuf = fz_modulate (modulator, 1);
+  fail_unless (err == nframes,
+               "Modulated frames should be %u, found %d.",
+               nframes, err);
+
   prev = -1;
   for (i = 0; i < nframes; ++i)
     {
-      /* This test inspects the private moulator buffer which is not
-         part of the public interface. It is only to here to asserts
-         that our callback (`sample_mod_renderer') was executed.  */
-      step = fz_val_at (modulator->stepbuf, i, real_t);
+      step = fz_val_at (modbuf, i, real_t);
       fail_unless (step > prev,
                    "Expected %f to be bigger than %f but it was not.",
                    step, prev);
