@@ -86,6 +86,12 @@ form_render (node_t *node, const request_t *request)
   real_t fwidth;
   struct voice_state_s *state;
 
+  /* Frequency modulation vars.  */
+  real_t fupper, flower;
+  real_t fmoddepth;
+  real_t *fmodarg;
+  const real_t *fmoddata;
+
   if (period == 0 || request->voice == NULL || request->srate <= 0)
     return 0;
 
@@ -94,8 +100,16 @@ form_render (node_t *node, const request_t *request)
   if (freq <= 0 || state == NULL)
     return 0;
 
-  fwidth = 1. / (request->srate / freq);
+  /* Modulate frequency.  */
+  fmodarg = fz_node_modargs (node, FORM_SLOT_FREQ);
+  fmoddepth = fmodarg ? *fmodarg : 1;
+  fupper = (freq * pow (TWELFTH_ROOT_OF_TWO, fmoddepth)) - freq;
+  flower = (freq * pow (TWELFTH_ROOT_OF_TWO, -fmoddepth)) - freq;
+  fmoddata = fz_node_modulate (node, FORM_SLOT_FREQ, 1,
+                               1. / (request->srate / flower),
+                               1. / (request->srate / fupper));
 
+  fwidth = 1. / (request->srate / freq);
   for (; i < nframes; ++i)
     {
       pos = state->pos;
@@ -127,7 +141,7 @@ form_render (node_t *node, const request_t *request)
                      (uint_t) (pos * period) % period,
                      real_t);
 
-      state->pos += fwidth;
+      state->pos += fmoddata ? fmoddata[i] + fwidth : fwidth;
       while (state->pos >= 1)
         state->pos -= 1;
     }

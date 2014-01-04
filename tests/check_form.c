@@ -61,7 +61,7 @@ START_TEST (test_form_shapes)
     .access = REQUEST_ACCESS_INTERLEAVED
   };
   const char *header = "Sine\tTriangle\tSquare\n";
-  char val[16]; /* Needs to hold at least "d.dd\t\0" (a TSV cell).  */
+  char val[16]; /* Needs to hold at least "d.dddd\t\0".  */
   uint_t i, j;
 
   fputs (header, tsv);
@@ -86,7 +86,7 @@ START_TEST (test_form_shapes)
       for (j = 0; j < nforms; ++j)
         {
           sprintf (val,
-                   j == nforms - 1 ? "%.2f\n" : "%.2f\t",
+                   j == nforms - 1 ? "%.4f\n" : "%.4f\t",
                    fz_val_at (framebufs[j], i, real_t));
           fputs (val, tsv);
         }
