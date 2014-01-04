@@ -344,6 +344,7 @@ render_node (node_t *node,
   node_t *parent;
   size_t nframes = fz_len ((const ptr_t) frames);
   size_t nparents = fz_len (node->parents);
+  size_t nmods = fz_len (node->mods);
   real_t *indata, *outdata, *pdata;
 
   if (node->flags & NODE_RENDERED)
@@ -374,7 +375,18 @@ render_node (node_t *node,
 
   node->flags |= NODE_RENDERED;
   if (node->render != NULL)
-    return node->render (node, request);
+    {
+      /* Render modulators first.  */
+      for (i = 0; i < nmods; ++i)
+        /* FIXME: Render mod only once even though it might be connected
+           to multiple slots.  */
+        fz_mod_render (fz_ref_at (node->mods, i,
+                                  struct modconn_s)->mod,
+                       nframes,
+                       request);
+
+      return node->render (node, request);
+    }
 
   return nframes;
 }
@@ -389,7 +401,6 @@ fz_node_render (node_t *node,
   int_t err;
   list_t *leaves;
   size_t nleaves;
-  size_t nmods;
   node_t *anchor;
   real_t *fdata, *adata;
 
@@ -420,15 +431,6 @@ fz_node_render (node_t *node,
     }
 
   fz_del (leaves); /* Allocated in `get_leaf_nodes'.  */
-
-  /* Render modulators.  */
-  nmods = fz_len (node->mods);
-  for (i = 0; i < nmods; ++i)
-    /* FIXME: Render mod only once even though it might be connected
-              to multiple slots.  */
-    fz_mod_render (fz_ref_at (node->mods, i, struct modconn_s)->mod,
-                   fz_len (frames),
-                   request);
 
   /* Render node tree.  */
   reset_node (anchor, fz_len (frames));

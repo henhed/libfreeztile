@@ -21,7 +21,11 @@
 #include <errno.h>
 #include "node.h"
 #include "private-node.h"
+#include "mod.h"
+#include "private-mod.h"
 #include "list.h"
+
+#define TEST_MOD_SLOT 1
 
 /* Test subclass of `node_c'.  */
 typedef struct test_node_s
@@ -37,9 +41,21 @@ test_node_render (node_t *node, const request_t *request)
   uint_t i;
   size_t num_frames = fz_len (node->framebuf);
   real_t multiplier = ((test_node_t *) node)->multiplier;
+  real_t *modarg;
+  const real_t *moddata;
+
+  modarg = fz_node_modargs (node, TEST_MOD_SLOT);
+  moddata = fz_node_modulate_unorm (node, TEST_MOD_SLOT,
+                                    modarg ? *modarg : 1);
 
   for (i = 0; i < num_frames; ++i)
-    fz_val_at (node->framebuf, i, real_t) *= multiplier;
+    {
+      fz_val_at (node->framebuf, i, real_t) *= multiplier;
+      if (moddata != NULL)
+        fz_val_at (node->framebuf, i, real_t) *= moddata[i];
+    }
+
+  return num_frames;
 }
 
 static ptr_t
@@ -71,6 +87,52 @@ static const class_t _test_node_c = {
 
 const class_t *test_node_c = &_test_node_c;
 /* End test subclass of `node_c'.  */
+
+/* Test subclass of `mod_c'.  */
+typedef struct test_mod_s
+{
+  mod_t __parent;
+} test_mod_t;
+
+static int_t
+test_mod_render (mod_t *mod, const request_t *request)
+{
+  uint_t i;
+  size_t size = fz_len (mod->stepbuf);
+  for (i = 0; i < size; ++i)
+    fz_val_at (mod->stepbuf, i, real_t) = ((real_t) i) / size;
+  return size;
+}
+
+static ptr_t
+test_mod_constructor (ptr_t ptr, va_list *args)
+{
+  (void) args;
+  test_mod_t *self = (test_mod_t *)
+    ((const class_t *) mod_c)->construct (ptr, args);
+  self->__parent.render = test_mod_render;
+  return self;
+}
+
+static ptr_t
+test_mod_destructor (ptr_t ptr)
+{
+  test_mod_t *self = (test_mod_t *)
+    ((const class_t *) mod_c)->destruct (ptr);
+  return self;
+}
+
+static const class_t _test_mod_c = {
+  sizeof (test_mod_t),
+  test_mod_constructor,
+  test_mod_destructor,
+  NULL,
+  NULL,
+  NULL
+};
+
+const class_t *test_mod_c = &_test_mod_c;
+/* End test subclass of `mod_c'.  */
 
 /* `node_c' instance instantiated in `setup'.  */
 node_t *root_node = NULL;
@@ -173,6 +235,56 @@ START_TEST (test_fz_node_render)
 }
 END_TEST
 
+/* Test node-modulator connection.  */
+START_TEST (test_fz_node_connect)
+{
+  srand (time (0));
+
+  list_t *frames = fz_new_simple_vector (real_t);
+  size_t nframes = 5;
+  real_t src[] = {rand (), rand (), rand (), rand (), rand ()};
+  node_t *node = fz_new (test_node_c, 1.1);
+  mod_t *mod = fz_new (test_mod_c);
+  request_t request = {};
+  real_t modarg = 2.2;
+  int_t lhs, rhs;
+  uint_t i;
+  int_t err;
+
+  fz_node_fork (root_node, node);
+  fz_insert (frames, 0, nframes, src);
+
+  err = fz_node_connect (NULL, mod, 0, NULL);
+  fail_unless (err > 0,
+               "Expected connect to fail with NULL node but got '%d'",
+               err);
+
+  err = fz_node_connect (node, NULL, 0, NULL);
+  fail_unless (err > 0,
+               "Expected connect to fail with NULL mod but got '%d'",
+               err);
+
+  err = fz_node_connect (node, mod, TEST_MOD_SLOT, &modarg);
+  fail_unless (err == 0,
+               "Expected connect to succeed but got '%d'",
+               err);
+
+  fz_node_render (root_node, frames, &request);
+  for (i = 0; i < nframes; ++i)
+    {
+      /* The test mod should generate a saw from 0 to `modarg'.  */
+      lhs = (int_t) fz_val_at (frames, i, real_t);
+      rhs = (int_t) ((((real_t) i) / nframes) * modarg * src[i] * 1.1);
+      fail_unless (lhs == rhs,
+                   "Expected modulated output to be %d but got %d",
+                   lhs, rhs);
+    }
+
+  fz_del (mod);
+  fz_del (frames);
+}
+END_TEST
+
 /* Initiate a node test suite struct.  */
 Suite *
 node_suite_create ()
@@ -183,6 +295,7 @@ node_suite_create ()
   tcase_add_test (t, test_fz_node_fork);
   tcase_add_test (t, test_fz_node_join);
   tcase_add_test (t, test_fz_node_render);
+  tcase_add_test (t, test_fz_node_connect);
   suite_add_tcase (s, t);
   return s;
 }
