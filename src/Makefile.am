@@ -8,5 +8,6 @@ libfreeztile_la_SOURCES =        \
     voice.h voice.c              \
     mod.h private-mod.h mod.c    \
     node.h private-node.h node.c \
-    form.h form.c
+    form.h form.c                \
+    lfo.h lfo.c
 libfreeztile_la_LIBADD = -lm

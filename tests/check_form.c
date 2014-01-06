@@ -42,7 +42,7 @@ START_TEST (test_form_shapes)
   /* The correctness of shapes are hard to measure prorgamatically
      so we render them into a TSV file so they can be inspected in
      an external chart tool such as Gnuplot.  */
-  FILE *tsv = fopen ("form_shapes.dat", "w");
+  FILE *tsv = fopen ("check_form.dat", "w");
   size_t nforms = 3;
   form_t *forms[] = {
     fz_new (form_c, SHAPE_SINE),
@@ -54,13 +54,9 @@ START_TEST (test_form_shapes)
     fz_new_simple_vector (real_t),
     fz_new_simple_vector (real_t)
   };
-  size_t nframes = 256;
-  request_t request = {
-    .voice = NULL,
-    .srate = REQUEST_SRATE_DEFAULT,
-    .access = REQUEST_ACCESS_INTERLEAVED
-  };
-  const char *header = "Sine\tTriangle\tSquare\n";
+  size_t nframes = 300;
+  request_t request = REQUEST_DEFAULT (NULL);
+  const char *header = "\"Sine\"\t\"Triangle\"\t\"Square\"\n";
   char val[16]; /* Needs to hold at least "d.dddd\t\0".  */
   uint_t i, j;
 
