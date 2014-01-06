@@ -26,6 +26,9 @@
 
 __BEGIN_DECLS
 
+#define fz_node_state(node, voice, type) \
+  ((type *) fz_node_state_data (node, voice, sizeof (type)))
+
 #define fz_node_modulate_snorm(node, slot, seed) \
   fz_node_modulate (node, slot, seed, -1,  1)
 
@@ -39,11 +42,14 @@ struct node_s
   list_t *parents;
   list_t *children;
   list_t *framebuf;
+  list_t *vstates;
   list_t *mods;
   flags_t flags;
   int_t (*render) (node_t *, const request_t *);
+  void (*freestate) (node_t *, ptr_t);
 };
 
+extern ptr_t fz_node_state_data (node_t *, voice_t *, size_t);
 extern ptr_t fz_node_modargs (node_t *, uint_t);
 extern const real_t * fz_node_modulate (node_t *, uint_t,
                                         real_t, real_t, real_t);

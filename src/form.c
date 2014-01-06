@@ -33,44 +33,13 @@ typedef struct form_s
   node_t __parent;
   list_t *shape;
   real_t shifting;
-  list_t *vstates;
 } form_t;
 
 /* Struct to keep track of individual voice states.  */
-struct voice_state_s
+struct state_s
 {
-  voice_t *voice;
   real_t pos;
 };
-
-static struct voice_state_s *
-get_voice_state (form_t *form, voice_t *voice)
-{
-  int_t i;
-  size_t nstates;
-  struct voice_state_s *state = NULL;
-  struct voice_state_s newstate;
-
-  if (form == NULL)
-    return state;
-
-  nstates = fz_len (form->vstates);
-  for (i = 0; i < nstates; ++i)
-    {
-      state = fz_ref_at (form->vstates, i, struct voice_state_s);
-      if (state->voice == voice)
-        return state;
-    }
-
-  newstate.voice = voice;
-  newstate.pos = 0;
-
-  i = fz_push_one (form->vstates, &newstate);
-  if (i >= 0)
-    state = fz_ref_at (form->vstates, i, struct voice_state_s);
-
-  return state;
-}
 
 /* Form node renderer.  */
 static int_t
@@ -84,7 +53,7 @@ form_render (node_t *node, const request_t *request)
   real_t shift;
   real_t freq;
   real_t fwidth;
-  struct voice_state_s *state;
+  struct state_s *state;
 
   /* Frequency modulation vars.  */
   real_t fupper, flower;
@@ -96,7 +65,7 @@ form_render (node_t *node, const request_t *request)
     return 0;
 
   freq = fz_voice_frequency (request->voice);
-  state = get_voice_state (form, request->voice);
+  state = fz_node_state (node, request->voice, struct state_s);
   if (freq <= 0 || state == NULL)
     return 0;
 
@@ -160,7 +129,6 @@ form_constructor (ptr_t ptr, va_list *args)
   self->__parent.render = form_render;
   self->shape = fz_new_simple_vector (real_t);
   self->shifting = 0.5;
-  self->vstates = fz_new_simple_vector (struct voice_state_s);
   fz_form_set_shape (self, shape);
 
   return self;
@@ -173,7 +141,6 @@ form_destructor (ptr_t ptr)
   form_t *self = (form_t *)
     ((const class_t *) node_c)->destruct (ptr);
   fz_del (self->shape);
-  fz_del (self->vstates);
   return self;
 }
 

@@ -22,12 +22,19 @@
 #include "node.h"
 #include "private-node.h"
 #include "defs.h"
+#include "malloc.h"
 #include "class.h"
 #include "list.h"
 #include "mod.h"
 
 #define NODE_NONE 0
 #define NODE_RENDERED (1 << 0)
+
+/* Voice - state mapping struct.  */
+struct voice_state_s {
+  voice_t *voice;
+  ptr_t data;
+};
 
 /* Mod connection struct.  */
 struct modconn_s {
@@ -44,9 +51,11 @@ node_constructor (ptr_t ptr, va_list *args)
   self->parents = fz_new_pointer_vector (node_t *);
   self->children = fz_new_owning_vector (node_t *);
   self->framebuf = fz_new_simple_vector (real_t);
+  self->vstates = fz_new_simple_vector (struct voice_state_s);
   self->mods = fz_new_simple_vector (struct modconn_s);
   self->flags = NODE_NONE;
   self->render = NULL;
+  self->freestate = NULL;
   return self;
 }
 
@@ -55,8 +64,18 @@ static ptr_t
 node_destructor (ptr_t ptr)
 {
   node_t *self = (node_t *) ptr;
+  struct voice_state_s *state;
+  size_t nvstates = fz_len (self->vstates);
   size_t nmods = fz_len (self->mods);
   uint_t i;
+
+  for (i = 0; i < nvstates; ++i)
+    {
+      state = fz_ref_at (self->vstates, i, struct voice_state_s);
+      if (self->freestate != NULL)
+        self->freestate (self, state->data);
+      fz_free (state->data);
+    }
 
   /* Modulators are retained in `fz_node_connect'.  */
   for (i = 0; i < nmods; ++i)
@@ -65,6 +84,7 @@ node_destructor (ptr_t ptr)
   fz_del (self->parents);
   fz_del (self->children);
   fz_del (self->framebuf);
+  fz_del (self->vstates);
   fz_del (self->mods);
   return self;
 }
@@ -251,6 +271,41 @@ fz_node_join (node_t *node, node_t *parent)
     return err;
 
   return fz_push_one (parent->children, node);
+}
+
+/* Get state data for the given NODE and VOICE. If no data
+   exists, SIZE bytes are allocetd and returned.  */
+ptr_t
+fz_node_state_data (node_t *node, voice_t *voice, size_t size)
+{
+  int_t i;
+  size_t nstates;
+  struct voice_state_s *state;
+  struct voice_state_s newstate;
+
+  if (node == NULL || voice == NULL)
+    return NULL;
+
+  nstates = fz_len (node->vstates);
+  for (i = 0; i < nstates; ++i)
+    {
+      state = fz_ref_at (node->vstates, i, struct voice_state_s);
+      if (state->voice == voice)
+        return state->data;
+    }
+
+  if (size == 0)
+    return NULL;
+
+  newstate.voice = voice;
+  newstate.data = fz_malloc (size);
+
+  i = fz_push_one (node->vstates, &newstate);
+  if (i >= 0)
+    return fz_ref_at (node->vstates, i,
+                      struct voice_state_s)->data;
+
+  return NULL;
 }
 
 /* Get `modconn_s' pointer for given SLOT.  */
