@@ -145,7 +145,8 @@ get_leaf_nodes (const node_t *node, list_t *leaves)
       for (i = 0; i < num_children; ++i)
         {
           child = fz_ref_at (node->children, i, node_t);
-          if (fz_len (child->children) == 0)
+          if (fz_len (child->children) == 0
+              && fz_index_of (leaves, child, fz_cmp_ptr) < 0)
             fz_push_one (leaves, child);
           else
             leaves = get_leaf_nodes (child, leaves);
