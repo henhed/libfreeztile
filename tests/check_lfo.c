@@ -85,7 +85,8 @@ START_TEST (test_lfo_render)
       fputs (val, tsv);
     }
 
-  err = fz_mod_render ((mod_t *) lfo, nframes, &request);
+  fz_mod_prepare ((mod_t *) lfo, nframes);
+  err = fz_mod_render ((mod_t *) lfo, &request);
   fail_unless (err == nframes,
                "Expected LFO to render %u frames but it returned %d.",
                (unsigned) nframes, err);
@@ -93,7 +94,8 @@ START_TEST (test_lfo_render)
   fz_del (request.voice);
   request.voice = NULL;
 
-  err = fz_mod_render ((mod_t *) lfo, nframes, &request);
+  fz_mod_prepare ((mod_t *) lfo, nframes);
+  err = fz_mod_render ((mod_t *) lfo, &request);
   fail_unless (err < 0,
                "Expected LFO to fail with NULL voice but got '%d'.",
                err);

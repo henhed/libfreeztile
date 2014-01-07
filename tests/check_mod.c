@@ -144,7 +144,8 @@ START_TEST (test_fz_mod_render)
   real_t step, prev;
   request_t request = REQUEST_DEFAULT (fz_new (voice_c));
 
-  err = fz_mod_render (modulator, nframes, &request);
+  fz_mod_prepare (modulator, nframes);
+  err = fz_mod_render (modulator, &request);
   fail_unless (err == nframes,
                "Frames rendered should be %u, found %d.",
                nframes, err);
@@ -164,19 +165,15 @@ START_TEST (test_fz_mod_render)
       prev = step;
     }
 
-  err = fz_mod_render (NULL, nframes, &request);
+  fz_mod_prepare (modulator, nframes);
+  err = fz_mod_render (NULL, &request);
   fail_unless (err < 0,
                "Expected renderer to return a negative error code "
                "when passed a NULL modulator but %d was returned.",
                err);
 
-  err = fz_mod_render (modulator, 0, &request);
-  fail_unless (err < 0,
-               "Expected renderer to return a negative error code "
-               "when asked for zero frames but %d was returned.",
-               err);
-
-  err = fz_mod_render (modulator, nframes, NULL);
+  fz_mod_prepare (modulator, nframes);
+  err = fz_mod_render (modulator, NULL);
   fail_unless (err < 0,
                "Expected renderer to return a negative error code "
                "when passed a NULL request but %d was returned.",

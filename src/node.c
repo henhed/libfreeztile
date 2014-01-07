@@ -379,11 +379,16 @@ fz_node_connect (node_t *self, mod_t *mod, uint_t slot, ptr_t args)
 static void
 reset_node (node_t *node, size_t nframes)
 {
-  uint_t i = 0;
+  uint_t i;
   size_t nparents = fz_len (node->parents);
+  size_t nmods = fz_len (node->mods);
 
-  for (; i < nparents; ++i)
+  for (i = 0; i < nparents; ++i)
     reset_node (fz_ref_at (node->parents, i, node_t), nframes);
+
+  for (i = 0; i < nmods; ++i)
+    fz_mod_prepare (fz_ref_at (node->mods, i, struct modconn_s)->mod,
+                    nframes);
 
   node->flags &= ~NODE_RENDERED;
   fz_clear (node->framebuf, nframes);
@@ -434,12 +439,8 @@ render_node (node_t *node,
     {
       /* Render modulators first.  */
       for (i = 0; i < nmods; ++i)
-        /* FIXME: Render mod only once even though it might be connected
-           to multiple slots.  */
         fz_mod_render (fz_ref_at (node->mods, i,
-                                  struct modconn_s)->mod,
-                       nframes,
-                       request);
+                                  struct modconn_s)->mod, request);
 
       return node->render (node, request);
     }
