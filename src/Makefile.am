@@ -9,5 +9,6 @@ libfreeztile_la_SOURCES =        \
     mod.h private-mod.h mod.c    \
     node.h private-node.h node.c \
     form.h form.c                \
-    lfo.h lfo.c
+    lfo.h lfo.c                  \
+    adsr.h adsr.c
 libfreeztile_la_LIBADD = -lm

@@ -7,7 +7,8 @@ TESTS =          \
     check_mod    \
     check_node   \
     check_form   \
-    check_lfo
+    check_lfo    \
+    check_adsr
 check_PROGRAMS = \
     check_malloc \
     check_class  \
@@ -16,7 +17,8 @@ check_PROGRAMS = \
     check_mod    \
     check_node   \
     check_form   \
-    check_lfo
+    check_lfo    \
+    check_adsr
 check_malloc_SOURCES = check_malloc.c $(top_builddir)/src/malloc.h
 check_malloc_CFLAGS = @CHECK_CFLAGS@
 check_malloc_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
@@ -41,3 +43,6 @@ check_form_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
 check_lfo_SOURCES = check_lfo.c $(top_builddir)/src/lfo.h
 check_lfo_CFLAGS = @CHECK_CFLAGS@
 check_lfo_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
+check_adsr_SOURCES = check_adsr.c $(top_builddir)/src/adsr.h
+check_adsr_CFLAGS = @CHECK_CFLAGS@
+check_adsr_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
