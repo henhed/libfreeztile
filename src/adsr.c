@@ -26,7 +26,8 @@
 struct state_s {
   unsigned char state;
   real_t pos;
-  real_t ra;
+  real_t ra; /* Release amplitude  */
+  real_t pa; /* Previous amplitude */
 };
 
 /* ADSR class struct.  */
@@ -52,6 +53,8 @@ adsr_render (mod_t *mod, const request_t *request)
   real_t *steps;
   uint_t i;
   size_t nrendered;
+  real_t pa, aa, da, sa, ra;
+  real_t aslope, dslope, sslope, rslope;
   struct state_s *state = fz_mod_state (mod, request->voice,
                                         struct state_s);
 
@@ -61,12 +64,26 @@ adsr_render (mod_t *mod, const request_t *request)
   pressed = fz_voice_pressed (request->voice);
   pressure = fz_voice_pressure (request->voice);
 
-  if (pressed == TRUE && state->state == ADSR_STATE_SILENT)
+  pa = state->pa;
+  aa = self->aa * pressure;
+  da = self->da * pressure;
+  sa = self->sa * pressure;
+  ra = state->ra;
+  aslope = (aa - pa) / self->al;
+  dslope = (da - aa) / self->dl;
+  sslope = (sa - da) / self->sl;
+  rslope = ra / self->rl;
+
+  if (pressed == TRUE
+      && (state->state == ADSR_STATE_SILENT
+          || state->state == ADSR_STATE_RELEASE))
     {
       state->state = ADSR_STATE_ATTACK;
       state->pos = 0;
     }
-  else if (pressed == FALSE && state != ADSR_STATE_SILENT)
+  else if (pressed == FALSE
+           && state->state != ADSR_STATE_SILENT
+           && state->state != ADSR_STATE_RELEASE)
     {
       state->state = ADSR_STATE_RELEASE;
       state->pos = 0;
@@ -83,8 +100,7 @@ adsr_render (mod_t *mod, const request_t *request)
 
           if (state->pos < self->al)
             {
-              steps[i] = pressure
-                * (state->pos * (self->aa / self->al));
+              steps[i] = pa + (state->pos * aslope);
               break;
             }
 
@@ -96,9 +112,7 @@ adsr_render (mod_t *mod, const request_t *request)
 
           if (state->pos < self->dl)
             {
-              steps[i] = pressure
-                * (self->aa +
-                   (state->pos * ((self->da - self->aa) / self->dl)));
+              steps[i] = aa + (state->pos * dslope);
               break;
             }
 
@@ -109,19 +123,16 @@ adsr_render (mod_t *mod, const request_t *request)
         case ADSR_STATE_SUSTAIN:
 
           if (state->pos < self->sl)
-            steps[i] = pressure
-              * (self->da +
-                 (state->pos * ((self->sa - self->da) / self->sl)));
+            steps[i] = da + (state->pos * sslope);
           else
-            steps[i] = pressure * self->sa;
+            steps[i] = sa;
           break;
 
         case ADSR_STATE_RELEASE:
 
           if (state->pos < self->rl)
             {
-              steps[i] = (self->rl - state->pos)
-                * (state->ra / self->rl);
+              steps[i] = (self->rl - state->pos) * rslope;
               break;
             }
           state->state = ADSR_STATE_SILENT;
@@ -132,8 +143,19 @@ adsr_render (mod_t *mod, const request_t *request)
         }
 
       state->pos += 1. / request->srate;
+    }
+
+  if (nrendered > 0)
+    {
+      if (state->state != ADSR_STATE_ATTACK)
+        /* Remeber previous amplitude to reduce clipping on the next
+           attack if this envelope is cut off before it reaches the
+           silent state.  */
+        state->pa = steps[nrendered - 1];
+
       if (state->state != ADSR_STATE_RELEASE)
-        state->ra = steps[i]; /* Remeber starting point for release */
+        /* Remeber starting point for release.  */
+        state->ra = steps[nrendered - 1];
     }
 
   return nrendered;

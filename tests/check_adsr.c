@@ -23,6 +23,8 @@
 #include "mod.h"
 #include "voice.h"
 #include "list.h"
+#include "node.h"
+#include "form.h"
 
 /* `adsr_c' instance instantiated in `setup'.  */
 adsr_t *adsr = NULL;
@@ -47,35 +49,44 @@ teardown ()
 START_TEST (test_adsr_render)
 {
   FILE *tsv = fopen ("check_adsr.dat", "w");
-  const char *header = "\"Envelope\"\n";
+  const char *header = "\"Form\"\t\"Envelope\"\n";
   char val[16];
   size_t nframes = 150;
+  node_t *form = fz_new (form_c, SHAPE_SINE);
+  list_t *frames = fz_new_simple_vector (real_t);
   request_t request = REQUEST_DEFAULT (fz_new (voice_c));
   const list_t *env;
   uint_t i;
   int_t err;
 
-  request.srate = nframes * 2;
-  fz_voice_press (request.voice, 440, 0.8);
+  fz_node_connect ((node_t *) form, (mod_t *) adsr,
+                   FORM_SLOT_AMP, NULL);
 
-  fz_mod_prepare ((mod_t *) adsr, nframes);
-  fz_mod_render ((mod_t *) adsr, &request);
+  request.srate = nframes * 2;
+  fz_voice_press (request.voice, 20, 0.8);
+
+  fz_clear (frames, nframes);
+  fz_node_render ((node_t *) form, frames, &request);
   env = fz_modulate_unorm ((mod_t *) adsr, 1);
 
   fputs (header, tsv);
   for (i = 0; i < nframes; ++i)
     {
+      sprintf (val, "%.4f\t", fz_val_at (frames, i, real_t));
+      fputs (val, tsv);
       sprintf (val, "%.4f\n", fz_val_at (env, i, real_t));
       fputs (val, tsv);
     }
 
   fz_voice_release (request.voice);
-  fz_mod_prepare ((mod_t *) adsr, nframes);
-  fz_mod_render ((mod_t *) adsr, &request);
+  fz_clear (frames, nframes);
+  fz_node_render ((node_t *) form, frames, &request);
   env = fz_modulate_unorm ((mod_t *) adsr, 1);
 
   for (i = 0; i < nframes; ++i)
     {
+      sprintf (val, "%.4f\t", fz_val_at (frames, i, real_t));
+      fputs (val, tsv);
       sprintf (val, "%.4f\n", fz_val_at (env, i, real_t));
       fputs (val, tsv);
     }
@@ -95,6 +106,8 @@ START_TEST (test_adsr_render)
                "Expected ADSR to fail with NULL voice but got '%d'.",
                err);
 
+  fz_del (frames);
+  fz_del (form);
   fclose (tsv);
 }
 END_TEST

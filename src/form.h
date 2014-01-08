@@ -28,6 +28,7 @@ __BEGIN_DECLS
 #define SHAPE_TRIANGLE 1
 #define SHAPE_SQUARE 2
 #define FORM_SLOT_FREQ 1
+#define FORM_SLOT_AMP 2
 
 typedef struct form_s form_t;
 

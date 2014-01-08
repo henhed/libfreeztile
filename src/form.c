@@ -48,12 +48,15 @@ form_render (node_t *node, const request_t *request)
   form_t *form = (form_t *) node;
   uint_t i = 0;
   size_t nframes = fz_len (node->framebuf);
+  real_t *frames = fz_list_data (node->framebuf);
+  real_t *formdata = fz_list_data (form->shape);
   size_t period = fz_len (form->shape);
   real_t pos;
   real_t shift;
   real_t freq;
   real_t fwidth;
   struct state_s *state;
+  const real_t *amoddata;
 
   /* Frequency modulation vars.  */
   real_t fupper, flower;
@@ -68,6 +71,9 @@ form_render (node_t *node, const request_t *request)
   state = fz_node_state (node, request->voice, struct state_s);
   if (freq <= 0 || state == NULL)
     return 0;
+
+  /* Modulate amplitude.  */
+  amoddata = fz_node_modulate_unorm (node, FORM_SLOT_AMP, 1);
 
   /* Modulate frequency.  */
   fmodarg = fz_node_modargs (node, FORM_SLOT_FREQ);
@@ -105,10 +111,8 @@ form_render (node_t *node, const request_t *request)
             }
         }
 
-      fz_val_at (node->framebuf, i, real_t)
-        = fz_val_at (form->shape,
-                     (uint_t) (pos * period) % period,
-                     real_t);
+      frames[i] += formdata[(uint_t) (pos * period) % period]
+        * (amoddata ? amoddata[i] : 1);
 
       state->pos += fmoddata ? fmoddata[i] + fwidth : fwidth;
       while (state->pos >= 1)
