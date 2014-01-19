@@ -26,6 +26,10 @@
 
 __BEGIN_DECLS
 
+#define NODE_NONE 0
+#define NODE_RENDERED (1 << 0)
+#define NODE_PRODUCER (1 << 1)
+
 #define fz_node_state(node, voice, type) \
   ((type *) fz_node_state_data (node, voice, sizeof (type)))
 

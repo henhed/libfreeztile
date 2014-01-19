@@ -27,9 +27,6 @@
 #include "list.h"
 #include "mod.h"
 
-#define NODE_NONE 0
-#define NODE_RENDERED (1 << 0)
-
 /* Voice - state mapping struct.  */
 struct voice_state_s {
   voice_t *voice;
@@ -399,7 +396,8 @@ reset_node (node_t *node, size_t nframes)
 static int_t
 render_node (node_t *node,
              const list_t *frames,
-             const request_t *request)
+             const request_t *request,
+             size_t *nprods)
 {
   uint_t i, j;
   node_t *parent;
@@ -407,9 +405,6 @@ render_node (node_t *node,
   size_t nparents = fz_len (node->parents);
   size_t nmods = fz_len (node->mods);
   real_t *indata, *outdata, *pdata;
-
-  if (node->flags & NODE_RENDERED)
-    return (int_t) fz_len (node->framebuf);
 
   outdata = fz_list_data (node->framebuf);
   if (outdata == NULL)
@@ -420,30 +415,33 @@ render_node (node_t *node,
       indata = fz_list_data (frames);
       if (indata == NULL)
         return -EINVAL;
-      memcpy (outdata, indata, nframes * sizeof (real_t));
+      if (~node->flags & NODE_RENDERED)
+        memcpy (outdata, indata, nframes * sizeof (real_t));
     }
   else
     for (i = 0; i < nparents; ++i)
       {
         parent = fz_ref_at (node->parents, i, node_t);
-        render_node (parent, frames, request);
+        render_node (parent, frames, request, nprods);
         pdata = fz_list_data (parent->framebuf);
-        if (pdata == NULL)
+        if (pdata == NULL || (node->flags & NODE_RENDERED))
           continue;
         for (j = 0; j < nframes; ++j)
           outdata[j] += pdata[j];
       }
 
-  node->flags |= NODE_RENDERED;
-  if (node->render != NULL)
+  if ((~node->flags & NODE_RENDERED) && node->render != NULL)
     {
       /* Render modulators first.  */
       for (i = 0; i < nmods; ++i)
         fz_mod_render (fz_ref_at (node->mods, i,
                                   struct modconn_s)->mod, request);
-
-      return node->render (node, request);
+      nframes = node->render (node, request);
     }
+
+  node->flags |= NODE_RENDERED;
+  if ((node->flags & NODE_PRODUCER) && nprods != NULL)
+    ++*nprods;
 
   return nframes;
 }
@@ -458,6 +456,8 @@ fz_node_render (node_t *node,
   int_t err;
   list_t *leaves;
   size_t nleaves;
+  size_t nprods;
+  size_t nframes;
   node_t *anchor;
   real_t *fdata, *adata;
 
@@ -490,8 +490,10 @@ fz_node_render (node_t *node,
   fz_del (leaves); /* Allocated in `get_leaf_nodes'.  */
 
   /* Render node tree.  */
-  reset_node (anchor, fz_len (frames));
-  err = render_node (anchor, frames, request);
+  nframes = fz_len (frames);
+  reset_node (anchor, nframes);
+  nprods = 0;
+  err = render_node (anchor, frames, request, &nprods);
   if (err < 0)
     return err;
 
@@ -500,7 +502,11 @@ fz_node_render (node_t *node,
     /* ADATA can only be NULL if the anchors frame buffer is empty
        but `reset_node' clears it to the size of FRAMES so that should
        never happen.  */
-    memcpy (fdata, adata, err * sizeof (real_t));
+    if (nprods > 1)
+      for (i = 0; i < nframes; ++i)
+        fdata[i] = adata[i] / nprods;
+    else
+      memcpy (fdata, adata, err * sizeof (real_t));
 
   return err;
 }

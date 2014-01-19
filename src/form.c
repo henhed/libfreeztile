@@ -131,6 +131,7 @@ form_constructor (ptr_t ptr, va_list *args)
   int_t shape = va_arg (*args, int_t);
 
   self->__parent.render = form_render;
+  self->__parent.flags |= NODE_PRODUCER;
   self->shape = fz_new_simple_vector (real_t);
   self->shifting = 0.5;
   fz_form_set_shape (self, shape);
