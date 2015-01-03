@@ -28,6 +28,7 @@ struct state_s {
   real_t pos;
   real_t ra; /* Release amplitude  */
   real_t pa; /* Previous amplitude */
+  real_t freq;
 };
 
 /* ADSR class struct.  */
@@ -50,6 +51,7 @@ adsr_render (mod_t *mod, const request_t *request)
   adsr_t *self = (adsr_t *) mod;
   bool_t pressed;
   real_t pressure;
+  real_t freq;
   real_t *steps;
   uint_t i;
   size_t nrendered;
@@ -63,6 +65,7 @@ adsr_render (mod_t *mod, const request_t *request)
 
   pressed = fz_voice_pressed (request->voice);
   pressure = fz_voice_pressure (request->voice);
+  freq = fz_voice_frequency (request->voice);
 
   pa = state->pa;
   aa = self->aa * pressure;
@@ -76,10 +79,12 @@ adsr_render (mod_t *mod, const request_t *request)
 
   if (pressed == TRUE
       && (state->state == ADSR_STATE_SILENT
-          || state->state == ADSR_STATE_RELEASE))
+          || state->state == ADSR_STATE_RELEASE
+          || state->freq != freq))
     {
       state->state = ADSR_STATE_ATTACK;
       state->pos = 0;
+      state->freq = freq;
     }
   else if (pressed == FALSE
            && state->state != ADSR_STATE_SILENT

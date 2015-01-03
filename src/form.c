@@ -33,12 +33,16 @@ typedef struct form_s
   node_t __parent;
   list_t *shape;
   real_t shifting;
+  real_t portamento;
 } form_t;
 
 /* Struct to keep track of individual voice states.  */
 struct state_s
 {
   real_t pos;
+  real_t fromfreq;
+  real_t currfreq;
+  real_t tofreq;
 };
 
 /* Form node renderer.  */
@@ -54,7 +58,7 @@ form_render (node_t *node, const request_t *request)
   real_t pos;
   real_t shift;
   real_t freq;
-  real_t fwidth;
+  real_t freqd;
   struct state_s *state;
   const real_t *amoddata;
 
@@ -72,6 +76,23 @@ form_render (node_t *node, const request_t *request)
   if (freq <= 0 || state == NULL)
     return 0;
 
+  /* Calculate delta frequency (portamento).  */
+  if (state->tofreq != freq)
+    {
+      if (state->currfreq <= 0)
+        state->currfreq = freq;
+      state->fromfreq = state->currfreq;
+      state->tofreq = freq;
+    }
+  if (form->portamento > 0)
+    freqd = (state->tofreq - state->fromfreq)
+      / (request->srate * form->portamento);
+  else
+    {
+      freqd = 0;
+      state->currfreq = freq;
+    }
+
   /* Modulate amplitude.  */
   amoddata = fz_node_modulate_unorm (node, FORM_SLOT_AMP, 1);
 
@@ -84,7 +105,6 @@ form_render (node_t *node, const request_t *request)
                                1. / (request->srate / flower),
                                1. / (request->srate / fupper));
 
-  fwidth = 1. / (request->srate / freq);
   for (; i < nframes; ++i)
     {
       pos = state->pos;
@@ -114,7 +134,17 @@ form_render (node_t *node, const request_t *request)
       frames[i] += formdata[(uint_t) (pos * period) % period]
         * (amoddata ? amoddata[i] : 1);
 
-      state->pos += fmoddata ? fmoddata[i] + fwidth : fwidth;
+      /* Update current frequency toward the requested frequency and
+         advance form pointer accordingly, plus any frequency
+         modulation.  */
+      if ((freqd < 0 && state->currfreq + freqd > freq)
+          || (freqd > 0 && state->currfreq + freqd < freq))
+        state->currfreq += freqd;
+      else
+        state->currfreq = freq;
+
+      state->pos += (1. / (request->srate / state->currfreq))
+        + (fmoddata ? fmoddata[i] : 0);
       while (state->pos >= 1)
         state->pos -= 1;
     }
@@ -134,6 +164,7 @@ form_constructor (ptr_t ptr, va_list *args)
   self->__parent.flags |= NODE_PRODUCER;
   self->shape = fz_new_simple_vector (real_t);
   self->shifting = 0.5;
+  self->portamento = 0;
   fz_form_set_shape (self, shape);
 
   return self;
