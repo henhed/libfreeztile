@@ -72,7 +72,8 @@ extern ptr_t fz_at (const list_t *, uint_t);
 extern int_t fz_insert (list_t *, uint_t, uint_t, ptr_t);
 extern int_t fz_erase (list_t *, uint_t, uint_t);
 extern int_t fz_clear (list_t *, size_t);
-extern int_t fz_index_of (list_t *, const ptr_t, cmp_f);
+extern int_t fz_index_of (const list_t *, const ptr_t, cmp_f);
+extern int_t fz_sort (list_t *, cmp_f);
 
 extern int_t fz_cmp_ptr (const ptr_t, const ptr_t);
 extern int_t fz_cmp_int (const ptr_t, const ptr_t);

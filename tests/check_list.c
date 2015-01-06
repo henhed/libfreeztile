@@ -198,6 +198,42 @@ START_TEST (test_fz_index_of)
 }
 END_TEST
 
+/* Test for `fz_sort'.  */
+START_TEST (test_fz_sort)
+{
+  list_t *list = fz_new_simple_vector (int_t);
+  int_t i;
+  int_t val;
+  int_t prev;
+
+  /* Populate LIST with random numbers.  */
+  srand (time (0));
+  for (i = 0; i < 100; ++i)
+    {
+      val = rand () % 100;
+      fz_push_one (list, &val);
+    }
+
+  /* Sort LIST.  */
+  ck_assert (fz_sort (list, fz_cmp_int) == 0);
+
+  /* Assert that each LIST value is equal to or greater than the
+     previous value.  */
+  prev = 0;
+  for (i = 0; i < fz_len (list); ++i)
+    {
+      val = fz_val_at (list, i, int_t);
+      ck_assert (val >= prev);
+      prev = val;
+    }
+
+  /* Test invalid argument return code.  */
+  ck_assert (fz_sort (NULL, NULL) == EINVAL);
+
+  fz_del (list);
+}
+END_TEST
+
 /* Test for `list_c' option LISTOPT_PTRS.  */
 START_TEST (test_listopt_ptrs)
 {
@@ -312,6 +348,7 @@ list_suite_create ()
   tcase_add_test (t, test_fz_erase);
   tcase_add_test (t, test_fz_clear);
   tcase_add_test (t, test_fz_index_of);
+  tcase_add_test (t, test_fz_sort);
   tcase_add_test (t, test_listopt_ptrs);
   tcase_add_test (t, test_listopt_keep);
   tcase_add_test (t, test_listopt_pass);

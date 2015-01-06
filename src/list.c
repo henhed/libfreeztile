@@ -34,6 +34,7 @@ struct list_s
   int_t (*insert) (list_t *, uint_t, uint_t, ptr_t);
   int_t (*erase) (list_t *, uint_t, uint_t);
   ptr_t (*at) (const list_t *, uint_t);
+  int_t (*sort) (list_t *, cmp_f);
 };
 
 /* Abstract list constuctor.  */
@@ -53,6 +54,7 @@ list_constructor (ptr_t ptr, va_list *args)
   self->insert = NULL;
   self->erase = NULL;
   self->at = NULL;
+  self->sort = NULL;
 
   return self;
 }
@@ -160,7 +162,7 @@ fz_clear (list_t *list, size_t size)
 
 /* Find the first occurance of ITEM in LIST.  */
 int_t
-fz_index_of (list_t *list, const ptr_t item, cmp_f compare)
+fz_index_of (const list_t *list, const ptr_t item, cmp_f compare)
 {
   uint_t i;
   size_t len;
@@ -171,12 +173,27 @@ fz_index_of (list_t *list, const ptr_t item, cmp_f compare)
   if (compare == NULL)
     compare = fz_cmp_ptr;
 
-  len = fz_len (list);
+  len = fz_len ((const ptr_t) list);
   for (i = 0; i < len; ++i)
     if (compare (fz_at (list, i), item) == 0)
       return i;
 
   return -1;
+}
+
+/* Sort LIST using given COMPARE callback.  */
+int_t
+fz_sort (list_t *list, cmp_f compare)
+{
+  if (list == NULL)
+    return EINVAL;
+  else if (list->sort == NULL)
+    return ENOSYS;
+
+  if (compare == NULL)
+    compare = fz_cmp_ptr;
+
+  return list->sort (list, compare);
 }
 
 /* Comparator functions for search and sort.  */
@@ -273,6 +290,18 @@ vector_erase (list_t *list, uint_t index, uint_t num)
   return index;
 }
 
+/* Class `vector_c' implementation of `fz_sort'.  */
+static int_t
+vector_sort (list_t *list, cmp_f compare)
+{
+  vector_t *self = (vector_t *) list;
+  if (self->length <= 1)
+    return 0;
+  qsort (self->items, self->length, list->type_size,
+         (int (*) (const void *, const void *)) compare);
+  return 0;
+}
+
 /* Concrete constructor for `vector_c'.  */
 static ptr_t
 vector_constructor (ptr_t ptr, va_list *args)
@@ -284,6 +313,7 @@ vector_constructor (ptr_t ptr, va_list *args)
   parent->insert = vector_insert;
   parent->erase = vector_erase;
   parent->at = vector_at;
+  parent->sort = vector_sort;
   return self;
 }
 
