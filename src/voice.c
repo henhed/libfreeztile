@@ -22,15 +22,25 @@
 #include <errno.h>
 #include "voice.h"
 #include "class.h"
+#include "list.h"
 
 /* voice class struct.  */
 struct voice_s
 {
   const class_t *__class;
+  uint_t id;
   bool_t pressed;
   real_t frequency;
   real_t velocity;
   real_t pressure;
+};
+
+/* voice pool class struct.  */
+struct vpool_s
+{
+  const class_t *__class;
+  list_t *pool;
+  list_t *active_voices;
 };
 
 /* Voice constructor.  */
@@ -38,6 +48,7 @@ static ptr_t
 voice_constructor (ptr_t ptr, va_list *args)
 {
   voice_t *self = (voice_t *) ptr;
+  self->id = 0;
   self->pressed = FALSE;
   self->frequency = 440;
   self->velocity = 0;
@@ -117,6 +128,119 @@ fz_voice_pressure (const voice_t *voice)
   return voice == NULL ? 0 : voice->pressure;
 }
 
+/* Voice pool constructor.  */
+static ptr_t
+vpool_constructor (ptr_t ptr, va_list *args)
+{
+  vpool_t *self = (vpool_t *) ptr;
+  size_t polyphony = va_arg (*args, size_t);
+  self->pool = fz_new_owning_vector (voice_t *);
+  self->active_voices = fz_new_owning_vector (voice_t *);
+  for (; polyphony > 0; --polyphony)
+    fz_push_one (self->pool, fz_new (voice_c));
+  /* Pre-allocate space for active voices.  */
+  fz_clear (self->active_voices, fz_len (self->pool));
+  fz_clear (self->active_voices, 0);
+  return self;
+}
+
+/* Voice pool destructor.  */
+static ptr_t
+vpool_destructor (ptr_t ptr)
+{
+  vpool_t *self = (vpool_t *) ptr;
+  fz_del (self->active_voices);
+  fz_del (self->pool);
+  return self;
+}
+
+/* Get active voice from given POOL by ID.  */
+static voice_t *
+vpool_get_active_voice (const vpool_t *pool, uint_t id)
+{
+  if (pool == NULL)
+    return NULL;
+
+  uint_t i;
+  voice_t *voice = NULL;
+  size_t nvoices = fz_len (pool->active_voices);
+  for (i = 0; i < nvoices; ++i)
+    {
+      voice = fz_ref_at (pool->active_voices, i, voice_t);
+      if (voice->id == id)
+        return voice;
+    }
+
+  return NULL;
+}
+
+/* Press a voice from POOL.  */
+int_t
+fz_vpool_press (vpool_t *pool, uint_t id, real_t velocity)
+{
+  if (pool == NULL)
+    return EINVAL;
+
+  uint_t i;
+  size_t poolsize;
+  size_t nactive;
+  voice_t *voice = vpool_get_active_voice (pool, id);
+  real_t frequency = A4_FREQ * pow (TWELFTH_ROOT_OF_TWO,
+                                    ((int_t) id) - A4_ID);
+
+  if (voice != NULL)
+    {
+      fz_voice_release (voice);
+      return fz_voice_press (voice, frequency, velocity);
+    }
+
+  poolsize = fz_len (pool->pool);
+  nactive = fz_len (pool->active_voices);
+
+  if (poolsize + nactive == 0)
+    return 0;
+
+  if (poolsize > 0)
+    {
+      voice = fz_ref_at (pool->pool, poolsize - 1, voice_t);
+      fz_retain (voice);
+      fz_erase_one (pool->pool, poolsize - 1);
+    }
+  else if (nactive > 0)
+    {
+      /* Steal oldest voice (FIFO).  */
+      voice = fz_ref_at (pool->active_voices, 0, voice_t);
+      fz_retain (voice);
+      fz_erase_one (pool->active_voices, 0);
+      fz_voice_release (voice);
+    }
+
+  voice->id = id;
+  fz_push_one (pool->active_voices, voice);
+  return fz_voice_press (voice, frequency, velocity);
+}
+
+/* Relase voice with given ID in POOL.  */
+int_t
+fz_vpool_release (vpool_t *pool, uint_t id)
+{
+  if (pool == NULL)
+    return EINVAL;
+
+  voice_t *voice = vpool_get_active_voice (pool, id);
+  if (voice == NULL)
+    return EINVAL;
+
+  return fz_voice_release (voice);
+}
+
+/* Get active voices from POOL.  */
+const list_t *
+fz_vpool_voices (vpool_t *pool)
+{
+  return pool == NULL ? NULL : pool->active_voices;
+}
+
 /* Interpret a string represented NOTE as a Hz frequency.  */
 real_t
 fz_note_frequency (const char *note)
@@ -179,4 +303,15 @@ static const class_t _voice_c = {
   NULL
 };
 
+/* `vpool_c' class descriptor.  */
+static const class_t _vpool_c = {
+  sizeof (vpool_t),
+  vpool_constructor,
+  vpool_destructor,
+  NULL,
+  NULL,
+  NULL
+};
+
 const class_t *voice_c = &_voice_c;
+const class_t *vpool_c = &_vpool_c;

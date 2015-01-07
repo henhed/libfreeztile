@@ -21,9 +21,12 @@
 #define FZ_VOICE_H 1
 
 #include "class.h"
+#include "list.h"
 
 __BEGIN_DECLS
 
+#define A4_ID 69
+#define A4_FREQ 440.0
 #define TWELFTH_ROOT_OF_TWO 1.05946309435929526
 #define REQUEST_SRATE_DEFAULT 44100
 #define REQUEST_ACCESS_INTERLEAVED 0
@@ -32,6 +35,7 @@ __BEGIN_DECLS
   {voice, REQUEST_SRATE_DEFAULT, REQUEST_ACCESS_INTERLEAVED}
 
 typedef struct voice_s voice_t;
+typedef struct vpool_s vpool_t;
 typedef struct request_s {
   voice_t *voice;
   real_t srate;
@@ -46,9 +50,14 @@ extern real_t fz_voice_frequency (const voice_t *);
 extern real_t fz_voice_velocity (const voice_t *);
 extern real_t fz_voice_pressure (const voice_t *);
 
+extern int_t fz_vpool_press (vpool_t *, uint_t, real_t);
+extern int_t fz_vpool_release (vpool_t *, uint_t);
+extern const list_t * fz_vpool_voices (vpool_t *);
+
 extern real_t fz_note_frequency (const char *);
 
 extern const class_t *voice_c;
+extern const class_t *vpool_c;
 
 __END_DECLS
 
