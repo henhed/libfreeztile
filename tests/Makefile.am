@@ -6,6 +6,7 @@ TESTS =          \
     check_voice  \
     check_mod    \
     check_node   \
+    check_graph  \
     check_form   \
     check_lfo    \
     check_adsr
@@ -16,6 +17,7 @@ check_PROGRAMS = \
     check_voice  \
     check_mod    \
     check_node   \
+    check_graph  \
     check_form   \
     check_lfo    \
     check_adsr
@@ -37,6 +39,9 @@ check_mod_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
 check_node_SOURCES = check_node.c $(top_builddir)/src/node.h
 check_node_CFLAGS = @CHECK_CFLAGS@
 check_node_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
+check_graph_SOURCES = check_graph.c $(top_builddir)/src/graph.h
+check_graph_CFLAGS = @CHECK_CFLAGS@
+check_graph_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
 check_form_SOURCES = check_form.c $(top_builddir)/src/form.h
 check_form_CFLAGS = @CHECK_CFLAGS@
 check_form_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
