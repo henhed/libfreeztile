@@ -30,6 +30,10 @@ typedef struct graph_s graph_t;
 extern bool_t fz_graph_has_node (const graph_t *, const node_t *);
 extern uint_t fz_graph_add_node (graph_t *, node_t *);
 extern uint_t fz_graph_del_node (graph_t *, node_t *);
+extern bool_t fz_graph_can_connect (const graph_t *, const node_t *,
+                                    const node_t *);
+extern uint_t fz_graph_connect (graph_t *, const node_t *,
+                                const node_t *);
 
 extern const class_t *graph_c;
 

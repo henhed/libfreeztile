@@ -57,13 +57,84 @@ graph_destructor (ptr_t ptr)
   return self;
 }
 
+/* Get NODEs index in GRAPH.  */
+static int_t
+graph_node_index (const graph_t *graph, const node_t *node)
+{
+  if (graph == NULL || node == NULL)
+    return -EINVAL;
+  return fz_index_of (graph->nodes, (const ptr_t) node, fz_cmp_ptr);
+}
+
+/* Get NODEs outgoing edges in GRAPH.  */
+static const list_t *
+graph_node_edges (const graph_t *graph, const node_t *node)
+{
+  int_t index = graph_node_index (graph, node);
+  return index >= 0 && index < fz_len (graph->am)
+    ? fz_ref_at (graph->am, index, list_t)
+    : NULL;
+}
+
+/* Get pointer to edge connecting SOURCE with SINK in GRAPH.  */
+static real_t *
+graph_edge_ptr (const graph_t *graph, const node_t *source,
+                const node_t *sink)
+{
+  const list_t *edges = graph_node_edges (graph, source);
+  if (edges == NULL)
+    return NULL;
+
+  int_t index = graph_node_index (graph, sink);
+  if (index < 0 || index >= fz_len ((const ptr_t) edges))
+    return NULL;
+
+  return fz_ref_at (edges, index, real_t);
+}
+
+/* Check if SINK can be reached from SOURCE in GRAPH.  */
+static bool_t
+graph_path_exists (const graph_t *graph, const node_t *source,
+                   const node_t *sink)
+{
+  if (graph == NULL || source == NULL || sink == NULL)
+    return FALSE;
+
+  int_t srcidx = graph_node_index (graph, source);
+  int_t snkidx = graph_node_index (graph, sink);
+  if (srcidx < 0 || snkidx < 0)
+    return FALSE;
+  else if (srcidx == snkidx)
+    return TRUE;
+
+  const list_t *edges = graph_node_edges (graph, source);
+  if (fz_val_at (edges, snkidx, real_t) >= 0)
+    return TRUE;
+
+  int_t index;
+  size_t nedges = fz_len ((const ptr_t) edges);
+  node_t *adjacent;
+  for (index = 0; index < nedges; ++index)
+    {
+      if (index == srcidx || index == snkidx
+          || fz_val_at (edges, index, real_t) < 0)
+        /* We've already checked for self-loop, adjacency and edge < 0
+           means there's no connection.  */
+        continue;
+      adjacent = fz_ref_at (graph->nodes, index, node_t);
+      if (graph_path_exists (graph, adjacent, sink))
+        return TRUE;
+    }
+
+  return FALSE;
+}
+
 /* Check if NODE is part of GRAPH.  */
 bool_t
 fz_graph_has_node (const graph_t *graph, const node_t *node)
 {
   if (graph == NULL || node == NULL
-      || fz_index_of (graph->nodes, (const ptr_t) node,
-                      fz_cmp_ptr) < 0)
+      || graph_node_index (graph, node) < 0)
     return FALSE;
 
   return TRUE;
@@ -87,7 +158,7 @@ fz_graph_add_node (graph_t *graph, node_t *node)
   int_t w;
   int_t h = fz_len (graph->am);
   list_t *edges;
-  real_t edge = 0;
+  real_t edge = -1; /* A negative value indicates no connection.  */
 
   for (y = 0; y <= index; ++y)
     {
@@ -111,7 +182,7 @@ fz_graph_del_node (graph_t *graph, node_t *node)
   if (graph == NULL || node == NULL)
     return EINVAL;
 
-  int_t index = fz_index_of (graph->nodes, node, fz_cmp_ptr);
+  int_t index = graph_node_index (graph, node);
   if (index < 0)
     return EINVAL;
 
@@ -129,6 +200,37 @@ fz_graph_del_node (graph_t *graph, node_t *node)
       edges = fz_ref_at (graph->am, y, list_t);
       fz_erase_one (edges, index);
     }
+
+  return 0;
+}
+
+/* Check if SINK can be connected to SOURCE in GRAPH.  */
+bool_t
+fz_graph_can_connect (const graph_t *graph, const node_t *source,
+                      const node_t *sink)
+{
+  if (source == sink || !fz_graph_has_node (graph, source)
+      || !fz_graph_has_node (graph, sink))
+    return FALSE;
+  /* If SOURCE can be found downstream from SINK, connecting the two
+     would create a loop.  */
+  return graph_path_exists (graph, sink, source) ? FALSE : TRUE;
+}
+
+/* Connect SINK to SOURCE in GRAPH.  */
+uint_t
+fz_graph_connect (graph_t *graph, const node_t *source,
+                  const node_t *sink)
+{
+  if (!fz_graph_can_connect (graph, source, sink))
+    return EINVAL;
+
+  real_t *edge = graph_edge_ptr (graph, source, sink);
+  if (edge == NULL)
+    return 1; /* Inconsistent adjacency matrix.  */
+
+  /* Set initial weight to 1 (100% mix).  */
+  *edge = 1.0;
 
   return 0;
 }

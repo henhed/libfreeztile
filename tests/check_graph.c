@@ -65,6 +65,92 @@ START_TEST (test_fz_graph_add_node)
 }
 END_TEST
 
+
+/* Test for `fz_graph_connect'.  */
+START_TEST (test_fz_graph_connect)
+{
+  /*
+    Sample directed acyclic graph where a, f, and g are sources and b,
+    c and e are sinks.
+
+           +---+  +---+
+           | a |  | b |<------+
+           +---+  +---+       |
+             |      ^         |
+             | +----+         |
+             V |              |
+    +---+   +---+   +---+   +---+
+    | c |<--| d |-->| e |   | f |
+    +---+   +---+   +---+   +---+
+              ^       ^       |
+              |       |       |
+            +---+   +---+     |
+            | g |-->| h |<----+
+            +---+   +---+
+   */
+
+  node_t *a = fz_new (node_c);
+  node_t *b = fz_new (node_c);
+  node_t *c = fz_new (node_c);
+  node_t *d = fz_new (node_c);
+  node_t *e = fz_new (node_c);
+  node_t *f = fz_new (node_c);
+  node_t *g = fz_new (node_c);
+  node_t *h = fz_new (node_c);
+
+  /* Test EINVAL.  */
+  ck_assert (fz_graph_connect (NULL, NULL, NULL) != 0);
+  ck_assert (fz_graph_connect (test_graph, NULL, NULL) != 0);
+  ck_assert (fz_graph_connect (NULL, a, NULL) != 0);
+  ck_assert (fz_graph_connect (NULL, NULL, b) != 0);
+  ck_assert (fz_graph_connect (test_graph, a, NULL) != 0);
+  ck_assert (fz_graph_connect (test_graph, NULL, b) != 0);
+  ck_assert (fz_graph_connect (NULL, a, b) != 0);
+  ck_assert (fz_graph_connect (test_graph, a, b) != 0);
+
+  fz_graph_add_node (test_graph, a);
+  fz_graph_add_node (test_graph, b);
+  fz_graph_add_node (test_graph, c);
+  fz_graph_add_node (test_graph, d);
+  fz_graph_add_node (test_graph, e);
+  fz_graph_add_node (test_graph, f);
+  fz_graph_add_node (test_graph, g);
+  fz_graph_add_node (test_graph, h);
+
+  /* Make sure we're allowed to create the example edges.  */
+  ck_assert (fz_graph_connect (test_graph, a, d) == 0);
+  ck_assert (fz_graph_connect (test_graph, d, b) == 0);
+  ck_assert (fz_graph_connect (test_graph, d, c) == 0);
+  ck_assert (fz_graph_connect (test_graph, d, e) == 0);
+  ck_assert (fz_graph_connect (test_graph, f, b) == 0);
+  ck_assert (fz_graph_connect (test_graph, f, h) == 0);
+  ck_assert (fz_graph_connect (test_graph, g, d) == 0);
+  ck_assert (fz_graph_connect (test_graph, g, h) == 0);
+  ck_assert (fz_graph_connect (test_graph, h, e) == 0);
+
+  /* Make sure we're *not* allowed to make any loops.  */
+  /* a-d-c-a */
+  ck_assert (fz_graph_can_connect (test_graph, c, a) == FALSE);
+  /* g-d-c-g */
+  ck_assert (fz_graph_can_connect (test_graph, c, g) == FALSE);
+  /* f-h-e-f */
+  ck_assert (fz_graph_can_connect (test_graph, e, f) == FALSE);
+  /* d-c-d */
+  ck_assert (fz_graph_can_connect (test_graph, c, d) == FALSE);
+  /* a-a */
+  ck_assert (fz_graph_can_connect (test_graph, a, a) == FALSE);
+
+  fz_del (h);
+  fz_del (g);
+  fz_del (f);
+  fz_del (e);
+  fz_del (d);
+  fz_del (c);
+  fz_del (b);
+  fz_del (a);
+}
+END_TEST
+
 /* Initiate a graph test suite struct.  */
 Suite *
 graph_suite_create ()
@@ -73,6 +159,7 @@ graph_suite_create ()
   TCase *t = tcase_create ("graph");
   tcase_add_checked_fixture (t, setup, teardown);
   tcase_add_test (t, test_fz_graph_add_node);
+  tcase_add_test (t, test_fz_graph_connect);
   suite_add_tcase (s, t);
   return s;
 }
