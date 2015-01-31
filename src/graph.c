@@ -22,14 +22,17 @@
 #include "list.h"
 #include "node.h"
 
+#define GRAPH_NODE_NONE 0
+#define GRAPH_NODE_RENDERED (1 << 0)
+
 /* Graph class struct.  */
 typedef struct graph_s
 {
   const class_t *__class;
   list_t *nodes;
   list_t *am; /* Adjacency matrix */
-  list_t *sources;
-  list_t *sinks;
+  list_t *buffers;
+  list_t *flags;
 } graph_t;
 
 /* Graph constructor.  */
@@ -40,8 +43,8 @@ graph_constructor (ptr_t ptr, va_list *args)
   (void) args;
   self->nodes = fz_new_retaining_vector (node_t *);
   self->am = fz_new_owning_vector (list_t *);
-  self->sources = fz_new_pointer_vector (node_t *);
-  self->sinks = fz_new_pointer_vector (node_t *);
+  self->buffers = fz_new_owning_vector (list_t *);
+  self->flags = fz_new_simple_vector (flags_t);
   return self;
 }
 
@@ -50,8 +53,8 @@ static ptr_t
 graph_destructor (ptr_t ptr)
 {
   graph_t *self = (graph_t *) ptr;
-  fz_del (self->sinks);
-  fz_del (self->sources);
+  fz_del (self->flags);
+  fz_del (self->buffers);
   fz_del (self->am);
   fz_del (self->nodes);
   return self;
@@ -74,6 +77,23 @@ graph_node_edges (const graph_t *graph, const node_t *node)
   return index >= 0 && index < fz_len (graph->am)
     ? fz_ref_at (graph->am, index, list_t)
     : NULL;
+}
+
+/* Check if NODE is a sink in GRAPH.  */
+static bool_t
+graph_node_is_sink (const graph_t *graph, const node_t *node)
+{
+  const list_t *edges = graph_node_edges (graph, node);
+  if (edges == NULL)
+    return FALSE; /* NODE is not part of GRAPH.  */
+
+  uint_t index;
+  size_t nedges = fz_len ((const ptr_t) edges);
+  for (index = 0; index < nedges; ++index)
+    if (fz_val_at (edges, index, real_t) >= 0)
+      return FALSE; /* NODE has at least 1 outgoing edge.  */
+
+  return TRUE;
 }
 
 /* Get pointer to edge connecting SOURCE with SINK in GRAPH.  */
@@ -172,6 +192,11 @@ fz_graph_add_node (graph_t *graph, node_t *node)
         }
     }
 
+  /* Add a frame buffer and flags for NODE.  */
+  flags_t noflags = GRAPH_NODE_NONE;
+  fz_push_one (graph->buffers, fz_new_simple_vector (real_t));
+  fz_push_one (graph->flags, &noflags);
+
   return 0;
 }
 
@@ -200,6 +225,10 @@ fz_graph_del_node (graph_t *graph, node_t *node)
       edges = fz_ref_at (graph->am, y, list_t);
       fz_erase_one (edges, index);
     }
+
+  /* Remove NODEs frame buffer and flags.  */
+  fz_erase_one (graph->buffers, index);
+  fz_erase_one (graph->flags, index);
 
   return 0;
 }
@@ -233,6 +262,112 @@ fz_graph_connect (graph_t *graph, const node_t *source,
   *edge = 1.0;
 
   return 0;
+}
+
+/* Get NODEs frame buffer from GRAPH.  */
+const list_t *
+fz_graph_buffer (const graph_t *graph, const node_t *node)
+{
+  if (graph == NULL || node == NULL)
+    return NULL;
+
+  int_t index = graph_node_index (graph, node);
+  if (index < 0)
+    return NULL;
+
+  return fz_ref_at (graph->buffers, index, list_t);
+}
+
+/* Prepare GRAPH to render NFRAMES frames.  */
+uint_t
+fz_graph_prepare (graph_t *graph, size_t nframes)
+{
+  if (graph == NULL)
+    return EINVAL;
+
+  uint_t index;
+  size_t nnodes = fz_len (graph->nodes);
+  for (index = 0; index < nnodes; ++index)
+    {
+      fz_clear (fz_ref_at (graph->buffers, index, list_t), nframes);
+      *fz_ref_at (graph->flags, index, flags_t) &= ~GRAPH_NODE_RENDERED;
+    }
+
+  return 0;
+}
+
+/* Render NODE into internal buffer of GRAPH using REQUEST.  */
+static int_t
+graph_node_render (graph_t *graph, node_t *node,
+                   const request_t *request)
+{
+  int_t err;
+  int_t index = graph_node_index (graph, node);
+  flags_t *flags = fz_ref_at (graph->flags, index, flags_t);
+  list_t *buffer = fz_ref_at (graph->buffers, index, list_t);
+  if (*flags & GRAPH_NODE_RENDERED)
+    return fz_len (buffer); /* NODE has already been rendered.  */
+
+  /* Mix source outputs into NODEs buffer.  */
+  real_t *frames = fz_list_data (buffer);
+  size_t nframes = fz_len (buffer);
+  uint_t srcidx;
+  size_t nnodes = fz_len (graph->nodes);
+  for (srcidx = 0; srcidx < nnodes; ++srcidx)
+    {
+      if (srcidx == index)
+        continue;
+
+      node_t *source = fz_ref_at (graph->nodes, srcidx, node_t);
+      real_t *mix = graph_edge_ptr (graph, source, node);
+      if (mix == NULL || *mix <= 0)
+        continue; /* SOURCE is not a source of NODE (or MIX = 0).  */
+
+      /* Render SOURCE.  */
+      err = graph_node_render (graph, source, request);
+      if (err < 0)
+        return err; /* Relay failed render.  */
+
+      uint_t frame;
+      size_t nsrcframes = err < nframes ? err : nframes;
+      real_t *srcframes = fz_list_data (fz_ref_at (graph->buffers,
+                                                   srcidx, list_t));
+      for (frame = 0; frame < nsrcframes; ++frame)
+        frames[frame] += srcframes[frame] * *mix;
+    }
+
+  /* Render NODE.  */
+  err = fz_node_render (node, buffer, request);
+  if (err >= 0)
+    *flags |= GRAPH_NODE_RENDERED;
+
+  return err;
+}
+
+/* Render GRAPH using REQUEST.  */
+int_t
+fz_graph_render (graph_t *graph, const request_t *request)
+{
+  if (graph == NULL)
+    return -EINVAL;
+
+  int_t nrendered = 0;
+  uint_t index;
+  size_t nnodes = fz_len (graph->nodes);
+  for (index = 0; index < nnodes; ++index)
+    {
+      node_t *node = fz_ref_at (graph->nodes, index, node_t);
+      if (graph_node_is_sink (graph, node))
+        {
+          int_t err = graph_node_render (graph, node, request);
+          if (err <= 0)
+            return err;
+          else if (err < nrendered || nrendered == 0)
+            nrendered = err;
+        }
+    }
+
+  return nrendered;
 }
 
 /* Graph class descriptor.  */

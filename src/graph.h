@@ -22,6 +22,7 @@
 
 #include "node.h"
 #include "class.h"
+#include "voice.h"
 
 __BEGIN_DECLS
 
@@ -34,6 +35,10 @@ extern bool_t fz_graph_can_connect (const graph_t *, const node_t *,
                                     const node_t *);
 extern uint_t fz_graph_connect (graph_t *, const node_t *,
                                 const node_t *);
+extern const list_t * fz_graph_buffer (const graph_t *,
+                                       const node_t *);
+extern uint_t fz_graph_prepare (graph_t *, size_t);
+extern int_t fz_graph_render (graph_t *, const request_t *);
 
 extern const class_t *graph_c;
 
