@@ -43,8 +43,6 @@ __BEGIN_DECLS
 struct node_s
 {
   const class_t *__class;
-  list_t *parents;
-  list_t *children;
   list_t *framebuf;
   list_t *vstates;
   list_t *mods;

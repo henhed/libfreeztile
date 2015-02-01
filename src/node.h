@@ -29,10 +29,6 @@ __BEGIN_DECLS
 
 typedef struct node_s node_t;
 
-extern bool_t fz_node_can_fork (const node_t *, const node_t *);
-extern bool_t fz_node_can_join (const node_t *, const node_t *);
-extern int_t fz_node_fork (node_t *, node_t *);
-extern int_t fz_node_join (node_t *, node_t *);
 extern int_t fz_node_connect (node_t *, mod_t *, uint_t, ptr_t);
 extern int_t fz_node_render (node_t *, list_t *, const request_t *);
 

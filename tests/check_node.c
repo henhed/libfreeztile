@@ -137,100 +137,43 @@ const class_t *test_mod_c = &_test_mod_c;
 /* End test subclass of `mod_c'.  */
 
 /* `node_c' instance instantiated in `setup'.  */
-node_t *root_node = NULL;
+node_t *test_node = NULL;
 
 /* Pre-test hook.  */
 void
 setup ()
 {
   ck_assert_int_eq (fz_memusage (0), 0);
-  root_node = fz_new (node_c);
+  srand (time (0));
+  test_node = fz_new (test_node_c, ((real_t) (rand () % 100)) / 100);
 }
 
 /* Post-test hook.  */
 void
 teardown ()
 {
-  ck_assert (fz_del (root_node) == 0);
+  ck_assert (fz_del (test_node) == 0);
   ck_assert_int_eq (fz_memusage (0), 0);
 }
-
-/* Test for `fz_node_fork'.  */
-START_TEST (test_fz_node_fork)
-{
-  node_t *node1 = fz_new (node_c);
-  node_t *node2 = fz_new (node_c);
-  node_t *node3 = fz_new (node_c);
-
-  ck_assert (fz_node_fork (root_node, node1) == 0);
-  ck_assert (fz_node_fork (root_node, node2) == 1);
-  ck_assert (fz_node_fork (node2, node3) == 0);
-
-  ck_assert (fz_node_fork (root_node, node1) == -EINVAL);
-  ck_assert (fz_node_fork (node2, node1) == -EINVAL);
-  ck_assert (fz_node_fork (node3, node1) == -EINVAL);
-  ck_assert (fz_node_fork (node3, root_node) == -EINVAL);
-  ck_assert (fz_node_fork (node2, node2) == -EINVAL);
-  ck_assert (fz_node_fork (NULL, node2) == -EINVAL);
-  ck_assert (fz_node_fork (node2, NULL) == -EINVAL);
-}
-END_TEST
-
-/* Test for `fz_node_join'.  */
-START_TEST (test_fz_node_join)
-{
-  node_t *node1 = fz_new (node_c);
-  node_t *node2 = fz_new (node_c);
-  node_t *node3 = fz_new (node_c);
-
-  ck_assert (fz_node_join (NULL, NULL) == -EINVAL);
-  ck_assert (fz_node_join (node1, NULL) == -EINVAL);
-  ck_assert (fz_node_join (NULL, root_node) == -EINVAL);
-  ck_assert (fz_node_join (node1, root_node) == -EINVAL);
-
-  fz_node_fork (root_node, node1);
-
-  ck_assert (fz_node_join (node1, root_node) == -EINVAL);
-  ck_assert (fz_node_join (node1, node2) == -EINVAL);
-
-  fz_node_fork (root_node, node2);
-  ck_assert (fz_node_join (node1, node2) >= 0);
-  ck_assert (fz_node_join (node1, node2) == -EINVAL);
-  ck_assert (fz_node_join (node2, node1) == -EINVAL);
-
-  fz_node_fork (node1, node3);
-  ck_assert (fz_node_join (node3, root_node) >= 0);
-}
-END_TEST
 
 /* Test `fz_node_render'.  */
 START_TEST (test_fz_node_render)
 {
-  srand (time (0));
-
   list_t *frames = fz_new_simple_vector (real_t);
   size_t nframes = 5;
   real_t src[] = {rand (), rand (), rand (), rand (), rand ()};
   request_t request;
+  real_t multi = ((test_node_t *) test_node)->multiplier;
   uint_t i;
 
-  node_t *node1 = fz_new (test_node_c, 1.1);
-  node_t *node2 = fz_new (test_node_c, 2.2);
-  node_t *node3 = fz_new (test_node_c, 3.3);
-
-  fz_node_fork (root_node, node1);
-  fz_node_fork (root_node, node2);
-  fz_node_fork (node2, node3);
-
   fz_insert (frames, 0, nframes, src);
-  ck_assert (fz_node_render (root_node,
+  ck_assert (fz_node_render (test_node,
                              frames,
                              &request) == nframes);
 
   for (i = 0; i < nframes; ++i)
     {
-      ck_assert (fz_val_at (frames, i, real_t)
-                 == (src[i] * 1.1) + (src[i] * 2.2 * 3.3));
+      ck_assert (fz_val_at (frames, i, real_t) == src[i] * multi);
     }
 
   fz_del (frames);
@@ -240,12 +183,10 @@ END_TEST
 /* Test node-modulator connection.  */
 START_TEST (test_fz_node_connect)
 {
-  srand (time (0));
-
   list_t *frames = fz_new_simple_vector (real_t);
   size_t nframes = 5;
   real_t src[] = {rand (), rand (), rand (), rand (), rand ()};
-  node_t *node = fz_new (test_node_c, 1.1);
+  real_t multi = ((test_node_t *) test_node)->multiplier;
   mod_t *mod = fz_new (test_mod_c);
   request_t request = {};
   real_t modarg = 2.2;
@@ -253,7 +194,6 @@ START_TEST (test_fz_node_connect)
   uint_t i;
   int_t err;
 
-  fz_node_fork (root_node, node);
   fz_insert (frames, 0, nframes, src);
 
   err = fz_node_connect (NULL, mod, 0, NULL);
@@ -261,22 +201,22 @@ START_TEST (test_fz_node_connect)
                "Expected connect to fail with NULL node but got '%d'",
                err);
 
-  err = fz_node_connect (node, NULL, 0, NULL);
+  err = fz_node_connect (test_node, NULL, 0, NULL);
   fail_unless (err > 0,
                "Expected connect to fail with NULL mod but got '%d'",
                err);
 
-  err = fz_node_connect (node, mod, TEST_MOD_SLOT, &modarg);
+  err = fz_node_connect (test_node, mod, TEST_MOD_SLOT, &modarg);
   fail_unless (err == 0,
                "Expected connect to succeed but got '%d'",
                err);
 
-  fz_node_render (root_node, frames, &request);
+  fz_node_render (test_node, frames, &request);
   for (i = 0; i < nframes; ++i)
     {
       /* The test mod should generate a saw from 0 to `modarg'.  */
       lhs = (int_t) fz_val_at (frames, i, real_t);
-      rhs = (int_t) ((((real_t) i) / nframes) * modarg * src[i] * 1.1);
+      rhs = (int_t) ((((real_t) i) / nframes) * modarg * src[i] * multi);
       fail_unless (lhs == rhs,
                    "Expected modulated output to be %d but got %d",
                    lhs, rhs);
@@ -294,8 +234,6 @@ node_suite_create ()
   Suite *s = suite_create ("node");
   TCase *t = tcase_create ("node");
   tcase_add_checked_fixture (t, setup, teardown);
-  tcase_add_test (t, test_fz_node_fork);
-  tcase_add_test (t, test_fz_node_join);
   tcase_add_test (t, test_fz_node_render);
   tcase_add_test (t, test_fz_node_connect);
   suite_add_tcase (s, t);
