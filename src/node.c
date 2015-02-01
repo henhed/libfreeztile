@@ -111,13 +111,6 @@ is_ancestor_of (const node_t *node, const node_t *descendant)
   return FALSE;
 }
 
-/* Return TRUE if NODE is a descendant of ANCESTOR.  */
-static bool_t
-is_descendant_of (const node_t *node, const node_t *ancestor)
-{
-  return is_ancestor_of (ancestor, node);
-}
-
 /* Get a list of all root nodes of NODE.  */
 static list_t *
 get_root_nodes (const node_t *node, list_t *roots)
@@ -238,7 +231,7 @@ fz_node_can_join (const node_t *node, const node_t *parent)
     {
       /* Check if PARENT is a descendant of any of NODEs roots.  */
       num_roots = fz_len (node_roots);
-      for (i == 0; i < num_roots; ++i)
+      for (i = 0; i < num_roots; ++i)
         {
           root = fz_ref_at (node_roots, i, node_t);
           if (is_ancestor_of (root, parent))
@@ -499,14 +492,16 @@ fz_node_render (node_t *node,
 
   adata = fz_list_data (anchor->framebuf);
   if (adata != NULL)
-    /* ADATA can only be NULL if the anchors frame buffer is empty
-       but `reset_node' clears it to the size of FRAMES so that should
-       never happen.  */
-    if (nprods > 1)
-      for (i = 0; i < nframes; ++i)
-        fdata[i] = adata[i] / nprods;
-    else
-      memcpy (fdata, adata, err * sizeof (real_t));
+    {
+      /* ADATA can only be NULL if the anchors frame buffer is empty
+         but `reset_node' clears it to the size of FRAMES so that should
+         never happen.  */
+      if (nprods > 1)
+        for (i = 0; i < nframes; ++i)
+          fdata[i] = adata[i] / nprods;
+      else
+        memcpy (fdata, adata, err * sizeof (real_t));
+    }
 
   return err;
 }

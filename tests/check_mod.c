@@ -19,6 +19,8 @@
 
 #include <check.h>
 #include <stdlib.h>
+#include <time.h>
+#include "malloc.h"
 #include "mod.h"
 #include "private-mod.h"
 #include "class.h"

@@ -77,7 +77,7 @@ lfo_render (mod_t *mod, const request_t *request)
 static void
 lfo_freestate (mod_t *mod, ptr_t voiceref)
 {
-  lfo_t *lfo = (lfo_t *) mod;
+  (void) mod;
   voice_t *voice = *((voice_t **) voiceref);
   if (voice != NULL)
     fz_del (voice);

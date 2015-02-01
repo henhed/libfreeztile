@@ -19,8 +19,10 @@
 
 #include <check.h>
 #include <stdlib.h>
+#include <time.h>
 #include <math.h>
 #include <errno.h>
+#include "malloc.h"
 #include "voice.h"
 
 voice_t *voice = NULL;

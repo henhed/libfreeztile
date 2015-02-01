@@ -19,6 +19,7 @@
 
 #include <check.h>
 #include <stdio.h>
+#include "malloc.h"
 #include "lfo.h"
 #include "form.h"
 #include "mod.h"

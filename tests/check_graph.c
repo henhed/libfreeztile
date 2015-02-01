@@ -18,6 +18,7 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include <check.h>
+#include "malloc.h"
 #include "graph.h"
 
 /* `graph_c' instance instantiated in `setup'.  */

@@ -18,6 +18,7 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include <stdlib.h>
+#include <time.h>
 #include <check.h>
 #include <errno.h>
 #include "malloc.h"

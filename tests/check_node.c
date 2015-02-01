@@ -18,7 +18,9 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include <check.h>
+#include <time.h>
 #include <errno.h>
+#include "malloc.h"
 #include "node.h"
 #include "private-node.h"
 #include "mod.h"

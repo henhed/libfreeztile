@@ -18,9 +18,11 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
 #include <errno.h>
 #include "voice.h"
+#include "malloc.h"
 #include "class.h"
 #include "list.h"
 
@@ -181,7 +183,6 @@ fz_vpool_press (vpool_t *pool, uint_t id, real_t velocity)
   if (pool == NULL)
     return EINVAL;
 
-  uint_t i;
   size_t poolsize;
   size_t nactive;
   voice_t *voice = vpool_get_active_voice (pool, id);
