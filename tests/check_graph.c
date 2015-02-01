@@ -20,6 +20,56 @@
 #include <check.h>
 #include "malloc.h"
 #include "graph.h"
+#include "private-node.h"
+
+/* Test subclass of `node_c'.  */
+typedef struct test_node_s
+{
+  node_t __parent;
+  real_t sample;
+} test_node_t;
+
+static int_t
+test_node_render (node_t *node, const request_t *request)
+{
+  (void) request;
+  real_t sample = ((test_node_t *) node)->sample;
+  uint_t i;
+  size_t nframes = fz_len (node->framebuf);
+  for (i = 0; i < nframes; ++i)
+    fz_val_at (node->framebuf, i, real_t) += sample;
+  return nframes;
+}
+
+static ptr_t
+test_node_constructor (ptr_t ptr, va_list *args)
+{
+  test_node_t *self = (test_node_t *)
+    ((const class_t *) node_c)->construct (ptr, args);
+  self->sample = va_arg (*args, real_t);
+  self->__parent.render = test_node_render;
+  return self;
+}
+
+static ptr_t
+test_node_destructor (ptr_t ptr)
+{
+  test_node_t *self = (test_node_t *)
+    ((const class_t *) node_c)->destruct (ptr);
+  return self;
+}
+
+static const class_t _test_node_c = {
+  sizeof (test_node_t),
+  test_node_constructor,
+  test_node_destructor,
+  NULL,
+  NULL,
+  NULL
+};
+
+const class_t *test_node_c = &_test_node_c;
+/* End test subclass of `node_c'.  */
 
 /* `graph_c' instance instantiated in `setup'.  */
 graph_t *test_graph = NULL;
@@ -152,6 +202,58 @@ START_TEST (test_fz_graph_connect)
 }
 END_TEST
 
+/* Test for `fz_graph_render'.  */
+START_TEST (test_fz_graph_render)
+{
+  real_t sample1 = 1;
+  real_t sample2 = 2;
+  real_t sample3 = 3;
+  int_t nframes = 10;
+  node_t *in1 = fz_new (test_node_c, sample1);
+  node_t *in2 = fz_new (test_node_c, sample2);
+  node_t *in3 = fz_new (test_node_c, sample3);
+  node_t *out1 = fz_new (node_c);
+  node_t *out2 = fz_new (node_c);
+  request_t request;
+
+  fz_graph_add_node (test_graph, in1);
+  fz_graph_add_node (test_graph, in2);
+  fz_graph_add_node (test_graph, in3);
+  fz_graph_add_node (test_graph, out1);
+  fz_graph_add_node (test_graph, out2);
+
+  /* in1 -> in2 -> out1 (sample1 + sample2) */
+  fz_graph_connect (test_graph, in1, in2);
+  fz_graph_connect (test_graph, in2, out1);
+  /* in1 -> in3 -> out2 (sample1 + sample3) */
+  fz_graph_connect (test_graph, in1, in3);
+  fz_graph_connect (test_graph, in3, out2);
+
+  ck_assert (fz_graph_prepare (test_graph, nframes) == 0);
+  ck_assert_int_eq (fz_graph_render (test_graph, &request), nframes);
+
+  const list_t *outbuf1 = fz_graph_buffer (test_graph, out1);
+  const list_t *outbuf2 = fz_graph_buffer (test_graph, out2);
+  ck_assert (fz_len ((const ptr_t) outbuf1) == (size_t) nframes);
+  ck_assert (fz_len ((const ptr_t) outbuf2) == (size_t) nframes);
+
+  int_t frame = 0;
+  for (; frame < nframes; ++frame)
+    {
+      real_t out1sample = fz_val_at (outbuf1, frame, real_t);
+      real_t out2sample = fz_val_at (outbuf2, frame, real_t);
+      ck_assert (out1sample == sample1 + sample2);
+      ck_assert (out2sample == sample1 + sample3);
+    }
+
+  fz_del (out2);
+  fz_del (out1);
+  fz_del (in3);
+  fz_del (in2);
+  fz_del (in1);
+}
+END_TEST
+
 /* Initiate a graph test suite struct.  */
 Suite *
 graph_suite_create ()
@@ -161,6 +263,7 @@ graph_suite_create ()
   tcase_add_checked_fixture (t, setup, teardown);
   tcase_add_test (t, test_fz_graph_add_node);
   tcase_add_test (t, test_fz_graph_connect);
+  tcase_add_test (t, test_fz_graph_render);
   suite_add_tcase (s, t);
   return s;
 }
