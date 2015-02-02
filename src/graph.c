@@ -285,12 +285,13 @@ fz_graph_prepare (graph_t *graph, size_t nframes)
   if (graph == NULL)
     return EINVAL;
 
-  uint_t index;
+  uint_t i;
   size_t nnodes = fz_len (graph->nodes);
-  for (index = 0; index < nnodes; ++index)
+  for (i = 0; i < nnodes; ++i)
     {
-      fz_clear (fz_ref_at (graph->buffers, index, list_t), nframes);
-      *fz_ref_at (graph->flags, index, flags_t) &= ~GRAPH_NODE_RENDERED;
+      fz_clear (fz_ref_at (graph->buffers, i, list_t), nframes);
+      fz_node_prepare (fz_ref_at (graph->nodes, i, node_t), nframes);
+      fz_val_at (graph->flags, i, flags_t) &= ~GRAPH_NODE_RENDERED;
     }
 
   return 0;

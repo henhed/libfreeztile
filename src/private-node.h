@@ -26,10 +26,6 @@
 
 __BEGIN_DECLS
 
-#define NODE_NONE 0
-#define NODE_RENDERED (1 << 0)
-#define NODE_PRODUCER (1 << 1)
-
 #define fz_node_state(node, voice, type) \
   ((type *) fz_node_state_data (node, voice, sizeof (type)))
 
@@ -43,11 +39,9 @@ __BEGIN_DECLS
 struct node_s
 {
   const class_t *__class;
-  list_t *framebuf;
   list_t *vstates;
   list_t *mods;
-  flags_t flags;
-  int_t (*render) (node_t *, const request_t *);
+  int_t (*render) (node_t *, list_t *, const request_t *);
   void (*freestate) (node_t *, ptr_t);
 };
 

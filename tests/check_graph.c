@@ -30,14 +30,15 @@ typedef struct test_node_s
 } test_node_t;
 
 static int_t
-test_node_render (node_t *node, const request_t *request)
+test_node_render (node_t *node, list_t *frames,
+                  const request_t *request)
 {
   (void) request;
   real_t sample = ((test_node_t *) node)->sample;
   uint_t i;
-  size_t nframes = fz_len (node->framebuf);
+  size_t nframes = fz_len (frames);
   for (i = 0; i < nframes; ++i)
-    fz_val_at (node->framebuf, i, real_t) += sample;
+    fz_val_at (frames, i, real_t) += sample;
   return nframes;
 }
 

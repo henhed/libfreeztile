@@ -45,10 +45,8 @@ static ptr_t
 node_constructor (ptr_t ptr, va_list *args)
 {
   node_t *self = (node_t *) ptr;
-  self->framebuf = fz_new_simple_vector (real_t);
   self->vstates = fz_new_simple_vector (struct voice_state_s);
   self->mods = fz_new_simple_vector (struct modconn_s);
-  self->flags = NODE_NONE;
   self->render = NULL;
   self->freestate = NULL;
   return self;
@@ -76,7 +74,6 @@ node_destructor (ptr_t ptr)
   for (i = 0; i < nmods; ++i)
     fz_del (fz_ref_at (self->mods, i, struct modconn_s)->mod);
 
-  fz_del (self->framebuf);
   fz_del (self->vstates);
   fz_del (self->mods);
   return self;
@@ -184,53 +181,18 @@ fz_node_connect (node_t *self, mod_t *mod, uint_t slot, ptr_t args)
   return 0;
 }
 
-/* Reset NODE in preparation for `render_node'.  */
-static void
-reset_node (node_t *node, size_t nframes)
+/* Prepare NODE to render NFRAMES frames.  */
+void
+fz_node_prepare (node_t *node, size_t nframes)
 {
+  if (node == NULL)
+    return;
+
   uint_t i;
   size_t nmods = fz_len (node->mods);
-
   for (i = 0; i < nmods; ++i)
     fz_mod_prepare (fz_ref_at (node->mods, i, struct modconn_s)->mod,
                     nframes);
-
-  node->flags &= ~NODE_RENDERED;
-  fz_clear (node->framebuf, nframes);
-}
-
-/* Render NODE into its internal buffer using FRAMES as source.  */
-static int_t
-render_node (node_t *node,
-             const list_t *frames,
-             const request_t *request)
-{
-  uint_t i;
-  size_t nframes = fz_len ((const ptr_t) frames);
-  size_t nmods = fz_len (node->mods);
-  real_t *indata, *outdata;
-
-  outdata = fz_list_data (node->framebuf);
-  if (outdata == NULL)
-    return -EINVAL;
-
-  indata = fz_list_data (frames);
-  if (indata == NULL)
-    return -EINVAL;
-  if (~node->flags & NODE_RENDERED)
-    memcpy (outdata, indata, nframes * sizeof (real_t));
-
-  if ((~node->flags & NODE_RENDERED) && node->render != NULL)
-    {
-      /* Render modulators first.  */
-      for (i = 0; i < nmods; ++i)
-        fz_mod_render (fz_ref_at (node->mods, i,
-                                  struct modconn_s)->mod, request);
-      nframes = node->render (node, request);
-    }
-
-  node->flags |= NODE_RENDERED;
-  return nframes;
 }
 
 /* Render frames from NODE into FRAMES.  */
@@ -239,26 +201,25 @@ fz_node_render (node_t *node,
                 list_t *frames,
                 const request_t *request)
 {
-  int_t err;
-  real_t *fdata, *ndata;
-
-  if (node == NULL || frames == NULL || request == NULL)
+  if (node == NULL || frames == NULL || request == NULL
+      || !fz_instance_of (frames, vector_c))
     return -EINVAL;
 
-  fdata = fz_list_data (frames);
-  if (fdata == NULL)
-    return -EINVAL; /* FRAMES is empty or not a vector.  */
+  size_t nframes = fz_len (frames);
+  if (node->render == NULL || nframes == 0)
+    return nframes;
 
-  /* Render node.  */
-  reset_node (node, fz_len (frames));
-  err = render_node (node, frames, request);
-  if (err < 0)
-    return err;
+  /* Prepare node in case it hasn't been done already.  */
+  fz_node_prepare (node, nframes);
 
-  ndata = fz_list_data (node->framebuf);
-  memcpy (fdata, ndata, err * sizeof (real_t));
+  /* Render modulators first.  */
+  uint_t i;
+  size_t nmods = fz_len (node->mods);
+  for (i = 0; i < nmods; ++i)
+    fz_mod_render (fz_ref_at (node->mods, i,
+                              struct modconn_s)->mod, request);
 
-  return err;
+  return node->render (node, frames, request);
 }
 
 /* `node_c' class descriptor.  */

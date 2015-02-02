@@ -37,11 +37,12 @@ typedef struct test_node_s
 } test_node_t;
 
 static int_t
-test_node_render (node_t *node, const request_t *request)
+test_node_render (node_t *node, list_t *frames,
+                  const request_t *request)
 {
   (void) request;
   uint_t i;
-  size_t num_frames = fz_len (node->framebuf);
+  size_t nframes = fz_len (frames);
   real_t multiplier = ((test_node_t *) node)->multiplier;
   real_t *modarg;
   const real_t *moddata;
@@ -50,14 +51,14 @@ test_node_render (node_t *node, const request_t *request)
   moddata = fz_node_modulate_unorm (node, TEST_MOD_SLOT,
                                     modarg ? *modarg : 1);
 
-  for (i = 0; i < num_frames; ++i)
+  for (i = 0; i < nframes; ++i)
     {
-      fz_val_at (node->framebuf, i, real_t) *= multiplier;
+      fz_val_at (frames, i, real_t) *= multiplier;
       if (moddata != NULL)
-        fz_val_at (node->framebuf, i, real_t) *= moddata[i];
+        fz_val_at (frames, i, real_t) *= moddata[i];
     }
 
-  return num_frames;
+  return nframes;
 }
 
 static ptr_t

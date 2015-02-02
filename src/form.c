@@ -47,12 +47,12 @@ struct state_s
 
 /* Form node renderer.  */
 static int_t
-form_render (node_t *node, const request_t *request)
+form_render (node_t *node, list_t *frames, const request_t *request)
 {
   form_t *form = (form_t *) node;
   uint_t i = 0;
-  size_t nframes = fz_len (node->framebuf);
-  real_t *frames = fz_list_data (node->framebuf);
+  size_t nframes = fz_len (frames);
+  real_t *framedata = fz_list_data (frames);
   real_t *formdata = fz_list_data (form->shape);
   size_t period = fz_len (form->shape);
   real_t pos;
@@ -131,7 +131,7 @@ form_render (node_t *node, const request_t *request)
             }
         }
 
-      frames[i] += formdata[(uint_t) (pos * period) % period]
+      framedata[i] += formdata[(uint_t) (pos * period) % period]
         * (amoddata ? amoddata[i] : 1);
 
       /* Update current frequency toward the requested frequency and
@@ -161,7 +161,6 @@ form_constructor (ptr_t ptr, va_list *args)
   int_t shape = va_arg (*args, int_t);
 
   self->__parent.render = form_render;
-  self->__parent.flags |= NODE_PRODUCER;
   self->shape = fz_new_simple_vector (real_t);
   self->shifting = 0.5;
   self->portamento = 0;
