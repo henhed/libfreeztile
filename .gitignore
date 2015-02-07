@@ -11,6 +11,7 @@ Makefile.in
 /config.log
 /config.status
 /configure
+/example/fzex1.lv2/fzex1.so
 /libtool
 /m4/
 /src/config.h
