@@ -17,15 +17,25 @@
    along with libfreeztile; see the file COPYING.  If not see
    <http://www.gnu.org/licenses/>.  */
 
+/* Standard headers.  */
 #include <stdlib.h>
 #include <string.h>
+
+/* LV2 headers.  */
 #include <lv2core.lv2/lv2.h>
 #include <urid.lv2/urid.h>
 #include <midi.lv2/midi.h>
 #include <atom.lv2/atom.h>
 #include <atom.lv2/util.h>
 
+/* libfreeztile headers.  */
+#include "../../src/class.h"
+#include "../../src/voice.h"
+#include "../../src/node.h"
+#include "../../src/graph.h"
+
 #define FZEX1_URI "http://www.freeztile.org/plugins#fzex1"
+#define POLYPHONY 4
 
 /* Named port numbers.  */
 enum {
@@ -40,6 +50,10 @@ enum {
 typedef struct {
   void *ports[NUM_PORTS];
   LV2_URID midi_urid;
+  request_t request;
+  vpool_t *voice_pool;
+  graph_t *graph;
+  node_t *sinks[2];
 } FzEx1;
 
 /* Create a new instance of this plugin. This function is called by
@@ -68,6 +82,7 @@ instantiate (const LV2_Descriptor *descriptor, double rate,
     }
 
   plugin->midi_urid = map->map (map->handle, LV2_MIDI__MidiEvent);
+  plugin->request.srate = (real_t) rate;
 
   return (LV2_Handle) plugin;
 }
@@ -87,6 +102,29 @@ connect_port (LV2_Handle instance, uint32_t port, void *data)
 static void
 activate (LV2_Handle instance)
 {
+  FzEx1 *plugin = (FzEx1 *) instance;
+  plugin->voice_pool = fz_new (vpool_c, POLYPHONY);
+  plugin->graph = fz_new (graph_c);
+  plugin->sinks[0] = fz_new (node_c);
+  plugin->sinks[1] = fz_new (node_c);
+
+  /* Add nodes to graph.  */
+  node_t *nodes[] = {
+    plugin->sinks[0],
+    plugin->sinks[1]
+  };
+  for (uint_t i = 0; i < 2; ++i)
+    {
+      fz_graph_add_node (plugin->graph, nodes[i]);
+      fz_del (nodes[i]); /* Nodes are retained by the graph and will
+                            be released when graph is deleted in
+                            `deactivate'.  */
+    }
+
+  /* Prepare graph to generate a fairly large number of samples here
+     to reduce the chance of reallocation of internal buffers in the
+     time sensitive `run' function.  */
+  fz_graph_prepare (plugin->graph, 8192);
 }
 
 /* Write NSAMPLES frames to audio output ports. This function runs in
@@ -108,13 +146,51 @@ run (LV2_Handle instance, uint32_t nsamples)
       switch (lv2_midi_message_type (msg))
         {
         case LV2_MIDI_MSG_NOTE_ON:
-          /* MIDI note pressed.  */
+          /* Press note msg[1] with velocity msg[2].  */
+          fz_vpool_press (plugin->voice_pool, (uint_t) msg[1],
+                          ((real_t) msg[2]) / 127);
           break;
         case LV2_MIDI_MSG_NOTE_OFF:
-          /* MIDI note released.  */
+          /* Release note msg[1].  */
+          fz_vpool_release (plugin->voice_pool, (uint_t) msg[1]);
           break;
         default:
           break;
+        }
+    }
+
+  /* Generate output.  */
+  real_t *sinks[] = {
+    fz_list_data (fz_graph_buffer (plugin->graph, plugin->sinks[0])),
+    fz_list_data (fz_graph_buffer (plugin->graph, plugin->sinks[1]))
+  };
+  float *outputs[] = {
+    (float *) plugin->ports[AUDIO_OUT_LEFT],
+    (float *) plugin->ports[AUDIO_OUT_RIGHT]
+  };
+
+  /* Render graph with each active voice.  */
+  const list_t *voices = fz_vpool_voices (plugin->voice_pool);
+  size_t nvoices = fz_len ((const ptr_t) voices);
+  for (uint_t vi; vi < nvoices; ++vi)
+    {
+      /* Prepare graph to generate NSAMPLES samples. This is not
+         necessarily real-time safe but since we've prepared the graph
+         in `activate', graphs' internal buffers should not be
+         reallocated unless NSAMPLES is a really large number.  */
+      fz_graph_prepare (plugin->graph, nsamples);
+
+      plugin->request.voice = fz_ref_at (voices, vi, voice_t);
+      fz_graph_render (plugin->graph, &plugin->request);
+
+      /* Copy samples from graph sinks to the output ports.  */
+      for (uint_t oi = 0; oi < 2; ++oi)
+        {
+          if (sinks[oi] == NULL || outputs[oi] == NULL)
+            continue;
+
+          for (uint_t si = 0; si < nsamples; ++si)
+            outputs[oi][si] += (float) sinks[oi][si];
         }
     }
 }
@@ -123,6 +199,9 @@ run (LV2_Handle instance, uint32_t nsamples)
 static void
 deactivate (LV2_Handle instance)
 {
+  FzEx1 *plugin = (FzEx1 *) instance;
+  fz_del (plugin->graph);
+  fz_del (plugin->voice_pool);
 }
 
 /* Free any resources allocated in `instantiate'.  */
