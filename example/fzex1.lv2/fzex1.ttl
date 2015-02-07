@@ -1,5 +1,8 @@
 @prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
 @prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
+@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
+@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
 
 <http://www.freeztile.org/plugins#fzex1>
     a lv2:Plugin ,
@@ -7,17 +10,27 @@
     lv2:project <http://www.freeztile.org> ;
     doap:name "libfreeztile example plugin #1" ;
     doap:license <http://www.gnu.org/licenses/gpl.html> ;
+    lv2:requiredFeature urid:map ;
     lv2:optionalFeature lv2:hardRTCapable ;
     lv2:port [
+        a lv2:InputPort ,
+            atom:AtomPort ;
+        atom:bufferType atom:Sequence ;
+        atom:supports midi:MidiEvent ;
+        lv2:designation lv2:control ;
+        lv2:index 0 ;
+        lv2:symbol "midi_in" ;
+        lv2:name "MIDI In" ;
+    ] , [
         a lv2:AudioPort ,
             lv2:OutputPort ;
-        lv2:index 0 ;
+        lv2:index 1 ;
         lv2:symbol "audio_out_left" ;
         lv2:name "Audio Out Left"
     ] , [
         a lv2:AudioPort ,
             lv2:OutputPort ;
-        lv2:index 1 ;
+        lv2:index 2 ;
         lv2:symbol "audio_out_right" ;
         lv2:name "Audio Out Right"
     ] .

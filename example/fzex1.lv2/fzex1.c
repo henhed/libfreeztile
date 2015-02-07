@@ -18,13 +18,19 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include <stdlib.h>
-#include <lv2.h>
+#include <string.h>
+#include <lv2core.lv2/lv2.h>
+#include <urid.lv2/urid.h>
+#include <midi.lv2/midi.h>
+#include <atom.lv2/atom.h>
+#include <atom.lv2/util.h>
 
 #define FZEX1_URI "http://www.freeztile.org/plugins#fzex1"
 
 /* Named port numbers.  */
 enum {
-  AUDIO_OUT_LEFT = 0,
+  MIDI_IN = 0,
+  AUDIO_OUT_LEFT,
   AUDIO_OUT_RIGHT,
   NUM_PORTS
 };
@@ -33,6 +39,7 @@ enum {
    references.  */
 typedef struct {
   void *ports[NUM_PORTS];
+  LV2_URID midi_urid;
 } FzEx1;
 
 /* Create a new instance of this plugin. This function is called by
@@ -43,6 +50,25 @@ instantiate (const LV2_Descriptor *descriptor, double rate,
              const LV2_Feature * const *features)
 {
   FzEx1 *plugin = (FzEx1 *) malloc (sizeof (FzEx1));
+  if (!plugin)
+    return NULL;
+  memset (plugin, 0, sizeof (FzEx1));
+
+  LV2_URID_Map *map = NULL;
+  for (uint32_t i = 0; features[i]; ++i)
+    {
+      if (!strcmp (features[i]->URI, LV2_URID__map))
+        map = (LV2_URID_Map *) features[i]->data;
+    }
+
+  if (!map)
+    {
+      free (plugin);
+      return NULL;
+    }
+
+  plugin->midi_urid = map->map (map->handle, LV2_MIDI__MidiEvent);
+
   return (LV2_Handle) plugin;
 }
 
@@ -68,6 +94,29 @@ activate (LV2_Handle instance)
 static void
 run (LV2_Handle instance, uint32_t nsamples)
 {
+  FzEx1 *plugin = (FzEx1 *) instance;
+
+  /* Look for new midi events.  */
+  const LV2_Atom_Sequence *events =
+    (const LV2_Atom_Sequence *) plugin->ports[MIDI_IN];
+
+  LV2_ATOM_SEQUENCE_FOREACH (events, event)
+    {
+      if (event->body.type != plugin->midi_urid)
+        continue;
+      const uint8_t * const msg = (const uint8_t *) (event + 1);
+      switch (lv2_midi_message_type (msg))
+        {
+        case LV2_MIDI_MSG_NOTE_ON:
+          /* MIDI note pressed.  */
+          break;
+        case LV2_MIDI_MSG_NOTE_OFF:
+          /* MIDI note released.  */
+          break;
+        default:
+          break;
+        }
+    }
 }
 
 /* Free any resources allocated in `activate'.  */
