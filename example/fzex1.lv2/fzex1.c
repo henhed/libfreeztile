@@ -33,9 +33,14 @@
 #include "../../src/voice.h"
 #include "../../src/node.h"
 #include "../../src/graph.h"
+#include "../../src/form.h"
+#include "../../src/adsr.h"
+#include "../../src/lfo.h"
 
 #define FZEX1_URI "http://www.freeztile.org/plugins#fzex1"
 #define POLYPHONY 4
+#define NUM_PANELS 2
+#define NUM_CHANNELS 2
 
 /* Named port numbers.  */
 enum {
@@ -45,6 +50,15 @@ enum {
   NUM_PORTS
 };
 
+/* Sound unit struct with sample generating/manipulating objects and
+   related parameters.  */
+typedef struct {
+  form_t *form;
+  adsr_t *envelope;
+  lfo_t *modulator;
+  real_t mod_depth;
+} Panel;
+
 /* Private plugin struct holding plugin data, state and resource
    references.  */
 typedef struct {
@@ -53,7 +67,8 @@ typedef struct {
   request_t request;
   vpool_t *voice_pool;
   graph_t *graph;
-  node_t *sinks[2];
+  Panel panels[NUM_PANELS];
+  node_t *sinks[NUM_CHANNELS];
 } FzEx1;
 
 /* Create a new instance of this plugin. This function is called by
@@ -105,20 +120,46 @@ activate (LV2_Handle instance)
   FzEx1 *plugin = (FzEx1 *) instance;
   plugin->voice_pool = fz_new (vpool_c, POLYPHONY);
   plugin->graph = fz_new (graph_c);
-  plugin->sinks[0] = fz_new (node_c);
-  plugin->sinks[1] = fz_new (node_c);
 
-  /* Add nodes to graph.  */
-  node_t *nodes[] = {
-    plugin->sinks[0],
-    plugin->sinks[1]
-  };
-  for (uint_t i = 0; i < 2; ++i)
+  /* Create and connect panel objects.  */
+  uint_t pi;
+  for (pi = 0; pi < NUM_PANELS; ++pi)
     {
-      fz_graph_add_node (plugin->graph, nodes[i]);
-      fz_del (nodes[i]); /* Nodes are retained by the graph and will
-                            be released when graph is deleted in
-                            `deactivate'.  */
+      Panel *panel = &plugin->panels[pi];
+      panel->form = fz_new (form_c, SHAPE_TRIANGLE);
+      panel->envelope = fz_new (adsr_c);
+      panel->modulator = fz_new (lfo_c, SHAPE_SINE, (real_t) 1);
+      panel->mod_depth = .1;
+
+      /* Connect ADSR to form amplitude.  */
+      fz_node_connect ((node_t *) panel->form,
+                       (mod_t *) panel->envelope, FORM_SLOT_AMP,
+                       NULL);
+
+      /* Connect LFO to form frequency.  */
+      fz_node_connect ((node_t *) panel->form,
+                       (mod_t *) panel->modulator, FORM_SLOT_FREQ,
+                       &panel->mod_depth);
+
+      /* Add panel form to graph.  */
+      fz_graph_add_node (plugin->graph, (node_t *) panel->form);
+      /* Nodes are retained by the graph and will be released when
+         graph is deleted in `deactivate'.  */
+      fz_del (panel->form);
+    }
+
+  /* Create graph sinks to be mapped to audio output ports.  */
+  for (uint_t ci = 0; ci < NUM_CHANNELS; ++ci)
+    {
+      plugin->sinks[ci] = fz_new (node_c);
+      fz_graph_add_node (plugin->graph, plugin->sinks[ci]);
+      fz_del (plugin->sinks[ci]);
+
+      /* Connect panel forms to sinks.  */
+      for (pi = 0; pi < NUM_PANELS; ++pi)
+        fz_graph_connect (plugin->graph,
+                          (node_t *) plugin->panels[pi].form,
+                          plugin->sinks[ci]);
     }
 
   /* Prepare graph to generate a fairly large number of samples here
@@ -184,7 +225,7 @@ run (LV2_Handle instance, uint32_t nsamples)
       fz_graph_render (plugin->graph, &plugin->request);
 
       /* Copy samples from graph sinks to the output ports.  */
-      for (uint_t oi = 0; oi < 2; ++oi)
+      for (uint_t oi = 0; oi < NUM_CHANNELS; ++oi)
         {
           if (sinks[oi] == NULL || outputs[oi] == NULL)
             continue;
@@ -200,6 +241,12 @@ static void
 deactivate (LV2_Handle instance)
 {
   FzEx1 *plugin = (FzEx1 *) instance;
+  for (uint_t i = 0; i < NUM_PANELS; ++i)
+    {
+      fz_del (plugin->panels[i].modulator);
+      fz_del (plugin->panels[i].envelope);
+    }
+  /* Sinks and panel forms are released by graph.  */
   fz_del (plugin->graph);
   fz_del (plugin->voice_pool);
 }
