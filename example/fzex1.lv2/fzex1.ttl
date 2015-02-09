@@ -1,36 +1,113 @@
-@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
-@prefix doap: <http://usefulinc.com/ns/doap#> .
-@prefix urid: <http://lv2plug.in/ns/ext/urid#> .
-@prefix atom: <http://lv2plug.in/ns/ext/atom#> .
-@prefix midi: <http://lv2plug.in/ns/ext/midi#> .
+@prefix lv2:   <http://lv2plug.in/ns/lv2core#> .
+@prefix doap:  <http://usefulinc.com/ns/doap#> .
+@prefix urid:  <http://lv2plug.in/ns/ext/urid#> .
+@prefix atom:  <http://lv2plug.in/ns/ext/atom#> .
+@prefix midi:  <http://lv2plug.in/ns/ext/midi#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix pg:    <http://lv2plug.in/ns/ext/port-groups#> .
+@prefix param: <http://lv2plug.in/ns/ext/parameters#> .
+@prefix epp:   <http://lv2plug.in/ns/ext/port-props#> .
 
-<http://www.freeztile.org/plugins#fzex1>
+<http://www.freeztile.org/plugins/fzex1#group_out>
+    a pg:StereoGroup ,
+        pg:OutputGroup ;
+    lv2:name "Output" ;
+    lv2:symbol "OUTPUT" .
+
+<http://www.freeztile.org/plugins/fzex1#group_engine1>
+    a param:OscillatorControls ,
+        pg:InputGroup ;
+    lv2:name "Engine 1" ;
+    lv2:symbol "ENGINE_1" .
+
+<http://www.freeztile.org/plugins/fzex1#group_engine2>
+    a param:OscillatorControls ,
+        pg:InputGroup ;
+    lv2:name "Engine 2" ;
+    lv2:symbol "ENGINE_2" .
+
+<http://www.freeztile.org/plugins/fzex1>
     a lv2:Plugin ,
         lv2:InstrumentPlugin ;
     lv2:project <http://www.freeztile.org> ;
-    doap:name "libfreeztile example plugin #1" ;
+    doap:name "FzEx1" ;
     doap:license <http://www.gnu.org/licenses/gpl.html> ;
     lv2:requiredFeature urid:map ;
     lv2:optionalFeature lv2:hardRTCapable ;
     lv2:port [
+        a lv2:AudioPort ,
+            lv2:OutputPort ;
+        lv2:index 0 ;
+        lv2:symbol "AUDIO_OUT_LEFT" ;
+        lv2:name "Audio Out Left" ;
+        lv2:designation pg:left ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_out> ;
+    ] , [
+        a lv2:AudioPort ,
+            lv2:OutputPort ;
+        lv2:index 1 ;
+        lv2:symbol "AUDIO_OUT_RIGHT" ;
+        lv2:name "Audio Out Right" ;
+        lv2:designation pg:right ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_out> ;
+    ] , [
         a lv2:InputPort ,
             atom:AtomPort ;
         atom:bufferType atom:Sequence ;
         atom:supports midi:MidiEvent ;
         lv2:designation lv2:control ;
-        lv2:index 0 ;
-        lv2:symbol "midi_in" ;
+        lv2:index 2 ;
+        lv2:symbol "MIDI_IN" ;
         lv2:name "MIDI In" ;
     ] , [
-        a lv2:AudioPort ,
-            lv2:OutputPort ;
-        lv2:index 1 ;
-        lv2:symbol "audio_out_left" ;
-        lv2:name "Audio Out Left"
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 3 ;
+        lv2:name "Waveform" ;
+        lv2:symbol "E1_FORM_SHAPE" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:default 0 ;
+        lv2:scalePoint [ rdf:value 0 ; rdfs:label "Sine" ] ;
+        lv2:scalePoint [ rdf:value 1 ; rdfs:label "Triangle" ] ;
+        lv2:scalePoint [ rdf:value 2 ; rdfs:label "Square" ] ;
+        lv2:designation param:waveform ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
     ] , [
-        a lv2:AudioPort ,
-            lv2:OutputPort ;
-        lv2:index 2 ;
-        lv2:symbol "audio_out_right" ;
-        lv2:name "Audio Out Right"
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 4 ;
+        lv2:name "Modulation Depth" ;
+        lv2:symbol "E1_MOD_DEPTH" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 2.0 ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:name "Waveform" ;
+        lv2:symbol "E2_FORM_SHAPE" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:portProperty lv2:integer , lv2:enumeration ;
+        lv2:default 0 ;
+        lv2:scalePoint [ rdf:value 0 ; rdfs:label "Sine" ] ;
+        lv2:scalePoint [ rdf:value 1 ; rdfs:label "Triangle" ] ;
+        lv2:scalePoint [ rdf:value 2 ; rdfs:label "Square" ] ;
+        lv2:designation param:waveform ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:name "Modulation Depth" ;
+        lv2:symbol "E2_MOD_DEPTH" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 2.0 ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
     ] .

@@ -37,16 +37,20 @@
 #include "../../src/adsr.h"
 #include "../../src/lfo.h"
 
-#define FZEX1_URI "http://www.freeztile.org/plugins#fzex1"
-#define POLYPHONY 4
-#define NUM_PANELS 2
+#define FZEX1_URI "http://www.freeztile.org/plugins/fzex1"
+#define POLYPHONY 10
+#define NUM_ENGINES 2
 #define NUM_CHANNELS 2
 
 /* Named port numbers.  */
 enum {
-  MIDI_IN = 0,
-  AUDIO_OUT_LEFT,
+  AUDIO_OUT_LEFT = 0,
   AUDIO_OUT_RIGHT,
+  MIDI_IN,
+  E1_FORM_SHAPE,
+  E1_MOD_DEPTH,
+  E2_FORM_SHAPE,
+  E2_MOD_DEPTH,
   NUM_PORTS
 };
 
@@ -54,10 +58,11 @@ enum {
    related parameters.  */
 typedef struct {
   form_t *form;
+  int_t form_shape;
   adsr_t *envelope;
   lfo_t *modulator;
   real_t mod_depth;
-} Panel;
+} Engine;
 
 /* Private plugin struct holding plugin data, state and resource
    references.  */
@@ -67,7 +72,7 @@ typedef struct {
   request_t request;
   vpool_t *voice_pool;
   graph_t *graph;
-  Panel panels[NUM_PANELS];
+  Engine engines[NUM_ENGINES];
   node_t *sinks[NUM_CHANNELS];
 } FzEx1;
 
@@ -121,31 +126,32 @@ activate (LV2_Handle instance)
   plugin->voice_pool = fz_new (vpool_c, POLYPHONY);
   plugin->graph = fz_new (graph_c);
 
-  /* Create and connect panel objects.  */
-  uint_t pi;
-  for (pi = 0; pi < NUM_PANELS; ++pi)
+  /* Create and connect engine objects.  */
+  uint_t ei;
+  for (ei = 0; ei < NUM_ENGINES; ++ei)
     {
-      Panel *panel = &plugin->panels[pi];
-      panel->form = fz_new (form_c, SHAPE_TRIANGLE);
-      panel->envelope = fz_new (adsr_c);
-      panel->modulator = fz_new (lfo_c, SHAPE_SINE, (real_t) 1);
-      panel->mod_depth = .1;
+      Engine *engine = &plugin->engines[ei];
+      engine->form_shape = SHAPE_SINE;
+      engine->form = fz_new (form_c, engine->form_shape);
+      engine->envelope = fz_new (adsr_c);
+      engine->modulator = fz_new (lfo_c, SHAPE_SINE, (real_t) 1);
+      engine->mod_depth = .1;
 
       /* Connect ADSR to form amplitude.  */
-      fz_node_connect ((node_t *) panel->form,
-                       (mod_t *) panel->envelope, FORM_SLOT_AMP,
+      fz_node_connect ((node_t *) engine->form,
+                       (mod_t *) engine->envelope, FORM_SLOT_AMP,
                        NULL);
 
       /* Connect LFO to form frequency.  */
-      fz_node_connect ((node_t *) panel->form,
-                       (mod_t *) panel->modulator, FORM_SLOT_FREQ,
-                       &panel->mod_depth);
+      fz_node_connect ((node_t *) engine->form,
+                       (mod_t *) engine->modulator, FORM_SLOT_FREQ,
+                       &engine->mod_depth);
 
-      /* Add panel form to graph.  */
-      fz_graph_add_node (plugin->graph, (node_t *) panel->form);
+      /* Add engine form to graph.  */
+      fz_graph_add_node (plugin->graph, (node_t *) engine->form);
       /* Nodes are retained by the graph and will be released when
          graph is deleted in `deactivate'.  */
-      fz_del (panel->form);
+      fz_del (engine->form);
     }
 
   /* Create graph sinks to be mapped to audio output ports.  */
@@ -155,10 +161,10 @@ activate (LV2_Handle instance)
       fz_graph_add_node (plugin->graph, plugin->sinks[ci]);
       fz_del (plugin->sinks[ci]);
 
-      /* Connect panel forms to sinks.  */
-      for (pi = 0; pi < NUM_PANELS; ++pi)
+      /* Connect engine forms to sinks.  */
+      for (ei = 0; ei < NUM_ENGINES; ++ei)
         fz_graph_connect (plugin->graph,
-                          (node_t *) plugin->panels[pi].form,
+                          (node_t *) plugin->engines[ei].form,
                           plugin->sinks[ci]);
     }
 
@@ -168,12 +174,39 @@ activate (LV2_Handle instance)
   fz_graph_prepare (plugin->graph, 8192);
 }
 
+/* Macro for accessing a given port for a specific engine.  */
+#define NTH_ENGINE_PORT(plugin, port, i) \
+  (float *) ((FzEx1 *) (plugin))->ports[ \
+    (port) + (E2_FORM_SHAPE - E1_FORM_SHAPE) * (i)];
+
+/* Helper function to `run' for interpreting engine control ports.  */
+static inline void
+update_engine_controls (FzEx1 *plugin)
+{
+  for (uint_t i = 0; i < NUM_ENGINES; ++i)
+    {
+      Engine *e = &plugin->engines[i];
+
+      /* Update form shape if it changed.  */
+      float form_shape = *NTH_ENGINE_PORT (plugin, E1_FORM_SHAPE, i);
+      if (e->form_shape != (int_t) form_shape)
+        {
+          fz_form_set_shape (e->form, (int_t) form_shape);
+          e->form_shape = (int_t) form_shape;
+        }
+
+      /* Update LFO depth.  */
+      e->mod_depth = *NTH_ENGINE_PORT (plugin, E1_MOD_DEPTH, i);
+    }
+}
+
 /* Write NSAMPLES frames to audio output ports. This function runs in
    in the `audio' threading class and must be real-time safe.  */
 static void
 run (LV2_Handle instance, uint32_t nsamples)
 {
   FzEx1 *plugin = (FzEx1 *) instance;
+  update_engine_controls (plugin);
 
   /* Look for new midi events.  */
   const LV2_Atom_Sequence *events =
@@ -241,12 +274,12 @@ static void
 deactivate (LV2_Handle instance)
 {
   FzEx1 *plugin = (FzEx1 *) instance;
-  for (uint_t i = 0; i < NUM_PANELS; ++i)
+  for (uint_t i = 0; i < NUM_ENGINES; ++i)
     {
-      fz_del (plugin->panels[i].modulator);
-      fz_del (plugin->panels[i].envelope);
+      fz_del (plugin->engines[i].modulator);
+      fz_del (plugin->engines[i].envelope);
     }
-  /* Sinks and panel forms are released by graph.  */
+  /* Sinks and engine forms are released by graph.  */
   fz_del (plugin->graph);
   fz_del (plugin->voice_pool);
 }
