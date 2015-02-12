@@ -48,8 +48,12 @@ enum {
   AUDIO_OUT_RIGHT,
   MIDI_IN,
   E1_FORM_SHAPE,
+  E1_MOD_SHAPE,
+  E1_MOD_FREQ,
   E1_MOD_DEPTH,
   E2_FORM_SHAPE,
+  E2_MOD_SHAPE,
+  E2_MOD_FREQ,
   E2_MOD_DEPTH,
   NUM_PORTS
 };
@@ -62,6 +66,7 @@ typedef struct {
   adsr_t *envelope;
   lfo_t *modulator;
   real_t mod_depth;
+  int_t mod_shape;
 } Engine;
 
 /* Private plugin struct holding plugin data, state and resource
@@ -134,8 +139,10 @@ activate (LV2_Handle instance)
       engine->form_shape = SHAPE_SINE;
       engine->form = fz_new (form_c, engine->form_shape);
       engine->envelope = fz_new (adsr_c);
-      engine->modulator = fz_new (lfo_c, SHAPE_SINE, (real_t) 1);
-      engine->mod_depth = .1;
+      engine->mod_shape = SHAPE_SINE;
+      engine->mod_depth = 0;
+      engine->modulator = fz_new (lfo_c, engine->mod_shape,
+                                  (real_t) 0);
 
       /* Connect ADSR to form amplitude.  */
       fz_node_connect ((node_t *) engine->form,
@@ -177,7 +184,7 @@ activate (LV2_Handle instance)
 /* Macro for accessing a given port for a specific engine.  */
 #define NTH_ENGINE_PORT(plugin, port, i) \
   (float *) ((FzEx1 *) (plugin))->ports[ \
-    (port) + (E2_FORM_SHAPE - E1_FORM_SHAPE) * (i)];
+    (port) + (E2_FORM_SHAPE - E1_FORM_SHAPE) * (i)]
 
 /* Helper function to `run' for interpreting engine control ports.  */
 static inline void
@@ -190,10 +197,18 @@ update_engine_controls (FzEx1 *plugin)
       /* Update form shape if it changed.  */
       float form_shape = *NTH_ENGINE_PORT (plugin, E1_FORM_SHAPE, i);
       if (e->form_shape != (int_t) form_shape)
-        {
-          fz_form_set_shape (e->form, (int_t) form_shape);
-          e->form_shape = (int_t) form_shape;
-        }
+        e->form_shape = fz_form_set_shape (e->form,
+                                           (int_t) form_shape);
+
+      /* Update LFO shape.  */
+      float mod_shape = *NTH_ENGINE_PORT (plugin, E1_MOD_SHAPE, i);
+      if (e->mod_shape != (int_t) mod_shape)
+        e->mod_shape = fz_lfo_set_shape (e->modulator,
+                                         (int_t) mod_shape);
+
+      /* Update LFO frequency.  */
+      fz_lfo_set_frequency (e->modulator,
+                            *NTH_ENGINE_PORT (plugin, E1_MOD_FREQ, i));
 
       /* Update LFO depth.  */
       e->mod_depth = *NTH_ENGINE_PORT (plugin, E1_MOD_DEPTH, i);

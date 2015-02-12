@@ -26,6 +26,10 @@ __BEGIN_DECLS
 
 typedef struct lfo_s lfo_t;
 
+extern real_t fz_lfo_get_frequency (lfo_t *);
+extern uint_t fz_lfo_set_frequency (lfo_t *, real_t);
+extern int_t fz_lfo_set_shape (lfo_t *, int_t);
+
 extern const class_t *lfo_c;
 
 __END_DECLS

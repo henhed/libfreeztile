@@ -49,6 +49,19 @@ lfo_render (mod_t *mod, const request_t *request)
   if (voiceref == NULL)
     /* Probably because `request->voice' is NULL.  */
     return -EINVAL;
+
+  if (self->freq <= 0)
+    {
+      /* If frequency is <= 0 `fz_voice_press' will fail and
+         `fz_node_render' will use whatever frequency the voice had
+         before so we'll just render a flat signal and bail out.  */
+      nrendered = fz_len (mod->stepbuf);
+      steps = (real_t *) fz_list_data (mod->stepbuf);
+      for (i = 0; i < nrendered; ++i)
+        steps[i] = .5;
+      return nrendered;
+    }
+
   if (*voiceref == NULL)
     *voiceref = fz_new (voice_c);
   else
@@ -61,8 +74,8 @@ lfo_render (mod_t *mod, const request_t *request)
   memcpy (&formrequest, request, sizeof (request_t));
   formrequest.voice = *voiceref;
   nrendered = fz_node_render ((node_t *) self->form,
-                             mod->stepbuf,
-                             &formrequest);
+                              mod->stepbuf,
+                              &formrequest);
 
   /* Node range is -1 - 1 while modulator range should be 0 - 1 so we
      need to convert the form output.  */
@@ -98,6 +111,32 @@ lfo_constructor (ptr_t ptr, va_list *args)
   self->freq = freq;
 
   return self;
+}
+
+/* Get LFO frequency.  */
+real_t
+fz_lfo_get_frequency (lfo_t *lfo)
+{
+  return lfo ? lfo->freq : 0;
+}
+
+/* Set LFO frequency.  */
+uint_t
+fz_lfo_set_frequency (lfo_t *lfo, real_t frequency)
+{
+  if (!lfo || frequency < 0)
+    return EINVAL;
+  lfo->freq = frequency;
+  return 0;
+}
+
+/* Set LFO shape.  */
+int_t
+fz_lfo_set_shape (lfo_t *lfo, int_t shape)
+{
+  if (!lfo)
+    return -EINVAL;
+  return fz_form_set_shape (lfo->form, shape);
 }
 
 /* LFO destructor.  */
