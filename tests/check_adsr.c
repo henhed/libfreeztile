@@ -18,6 +18,8 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include <check.h>
+#include <time.h>
+#include <errno.h>
 #include <stdio.h>
 #include "malloc.h"
 #include "adsr.h"
@@ -46,6 +48,48 @@ teardown ()
   ck_assert_int_eq (fz_memusage (0), 0);
 }
 
+/* Test ADSR getters / setters.  */
+START_TEST (test_adsr_get_set)
+{
+  /* Test valid values.  */
+  srand (time (0));
+  real_t in_range = (real_t) (rand () % 100) / 100;
+  ck_assert (fz_adsr_set_a_len (adsr, in_range) == 0);
+  ck_assert (fz_adsr_get_a_len (adsr) == in_range);
+  ck_assert (fz_adsr_set_a_amp (adsr, in_range) == 0);
+  ck_assert (fz_adsr_get_a_amp (adsr) == in_range);
+  ck_assert (fz_adsr_set_d_len (adsr, in_range) == 0);
+  ck_assert (fz_adsr_get_d_len (adsr) == in_range);
+  ck_assert (fz_adsr_set_d_amp (adsr, in_range) == 0);
+  ck_assert (fz_adsr_get_d_amp (adsr) == in_range);
+  ck_assert (fz_adsr_set_s_len (adsr, in_range) == 0);
+  ck_assert (fz_adsr_get_s_len (adsr) == in_range);
+  ck_assert (fz_adsr_set_s_amp (adsr, in_range) == 0);
+  ck_assert (fz_adsr_get_s_amp (adsr) == in_range);
+  ck_assert (fz_adsr_set_r_len (adsr, in_range) == 0);
+  ck_assert (fz_adsr_get_r_len (adsr) == in_range);
+
+  /* Test invalid values.  */
+  ck_assert (fz_adsr_set_a_len (adsr, -0.1) == EINVAL);
+  ck_assert (fz_adsr_get_a_len (adsr) == in_range);
+  ck_assert (fz_adsr_set_a_amp (adsr, -0.1) == EINVAL);
+  ck_assert (fz_adsr_set_a_amp (adsr, 1.1) == EINVAL);
+  ck_assert (fz_adsr_get_a_amp (adsr) == in_range);
+  ck_assert (fz_adsr_set_d_len (adsr, -0.1) == EINVAL);
+  ck_assert (fz_adsr_get_d_len (adsr) == in_range);
+  ck_assert (fz_adsr_set_d_amp (adsr, -0.1) == EINVAL);
+  ck_assert (fz_adsr_set_d_amp (adsr, 1.1) == EINVAL);
+  ck_assert (fz_adsr_get_d_amp (adsr) == in_range);
+  ck_assert (fz_adsr_set_s_len (adsr, -0.1) == EINVAL);
+  ck_assert (fz_adsr_get_s_len (adsr) == in_range);
+  ck_assert (fz_adsr_set_s_amp (adsr, -0.1) == EINVAL);
+  ck_assert (fz_adsr_set_s_amp (adsr, 1.1) == EINVAL);
+  ck_assert (fz_adsr_get_s_amp (adsr) == in_range);
+  ck_assert (fz_adsr_set_r_len (adsr, -0.1) == EINVAL);
+  ck_assert (fz_adsr_get_r_len (adsr) == in_range);
+}
+END_TEST
+
 /* Test the ADSR modulator realization.  */
 START_TEST (test_adsr_render)
 {
@@ -59,6 +103,14 @@ START_TEST (test_adsr_render)
   const list_t *env;
   uint_t i;
   int_t err;
+
+  fz_adsr_set_a_len (adsr, 0.10);
+  fz_adsr_set_a_amp (adsr, 1.00);
+  fz_adsr_set_d_len (adsr, 0.10);
+  fz_adsr_set_d_amp (adsr, 0.50);
+  fz_adsr_set_s_len (adsr, 0.20);
+  fz_adsr_set_s_amp (adsr, 0.75);
+  fz_adsr_set_r_len (adsr, 0.40);
 
   fz_node_connect ((node_t *) form, (mod_t *) adsr,
                    FORM_SLOT_AMP, NULL);
@@ -120,6 +172,7 @@ adsr_suite_create ()
   Suite *s = suite_create ("adsr");
   TCase *t = tcase_create ("adsr");
   tcase_add_checked_fixture (t, setup, teardown);
+  tcase_add_test (t, test_adsr_get_set);
   tcase_add_test (t, test_adsr_render);
   suite_add_tcase (s, t);
   return s;

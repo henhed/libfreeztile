@@ -32,6 +32,21 @@ __BEGIN_DECLS
 
 typedef struct adsr_s adsr_t;
 
+extern real_t fz_adsr_get_a_len (const adsr_t *);
+extern uint_t fz_adsr_set_a_len (adsr_t *, real_t);
+extern real_t fz_adsr_get_a_amp (const adsr_t *);
+extern uint_t fz_adsr_set_a_amp (adsr_t *, real_t);
+extern real_t fz_adsr_get_d_len (const adsr_t *);
+extern uint_t fz_adsr_set_d_len (adsr_t *, real_t);
+extern real_t fz_adsr_get_d_amp (const adsr_t *);
+extern uint_t fz_adsr_set_d_amp (adsr_t *, real_t);
+extern real_t fz_adsr_get_s_len (const adsr_t *);
+extern uint_t fz_adsr_set_s_len (adsr_t *, real_t);
+extern real_t fz_adsr_get_s_amp (const adsr_t *);
+extern uint_t fz_adsr_set_s_amp (adsr_t *, real_t);
+extern real_t fz_adsr_get_r_len (const adsr_t *);
+extern uint_t fz_adsr_set_r_len (adsr_t *, real_t);
+
 extern const class_t *adsr_c;
 
 __END_DECLS

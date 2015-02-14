@@ -72,10 +72,13 @@ adsr_render (mod_t *mod, const request_t *request)
   da = self->da * pressure;
   sa = self->sa * pressure;
   ra = state->ra;
-  aslope = (aa - pa) / self->al;
-  dslope = (da - aa) / self->dl;
-  sslope = (sa - da) / self->sl;
-  rslope = ra / self->rl;
+  /* The conditional statements here are just a division-by-zero
+     prevention. If a parts length is <= 0, the (0) slope will never
+     be used.  */
+  aslope = self->al > 0 ? (aa - pa) / self->al : 0;
+  dslope = self->dl > 0 ? (da - aa) / self->dl : 0;
+  sslope = self->sl > 0 ? (sa - da) / self->sl : 0;
+  rslope = self->rl > 0 ? ra / self->rl : 0;
 
   if (pressed == TRUE
       && (state->state == ADSR_STATE_SILENT
@@ -105,29 +108,35 @@ adsr_render (mod_t *mod, const request_t *request)
 
           if (state->pos < self->al)
             {
-              steps[i] = pa + (state->pos * aslope);
+              steps[i] = self->al <= 0
+                ? aa
+                : pa + (state->pos * aslope);
               break;
             }
 
           state->state = ADSR_STATE_DECAY;
-          while (state->pos > self->al && state->pos > 0)
+          while (state->pos > self->al && state->pos > 0
+                 && self->al > 0)
             state->pos -= self->al;
 
         case ADSR_STATE_DECAY:
 
           if (state->pos < self->dl)
             {
-              steps[i] = aa + (state->pos * dslope);
+              steps[i] = self->dl <= 0
+                ? da
+                : aa + (state->pos * dslope);
               break;
             }
 
           state->state = ADSR_STATE_SUSTAIN;
-          while (state->pos > self->dl && state->pos > 0)
+          while (state->pos > self->dl && state->pos > 0
+                 && self->dl > 0)
             state->pos -= self->dl;
 
         case ADSR_STATE_SUSTAIN:
 
-          if (state->pos < self->sl)
+          if (state->pos < self->sl && self->sl > 0)
             steps[i] = da + (state->pos * sslope);
           else
             steps[i] = sa;
@@ -135,7 +144,7 @@ adsr_render (mod_t *mod, const request_t *request)
 
         case ADSR_STATE_RELEASE:
 
-          if (state->pos < self->rl)
+          if (state->pos < self->rl && self->rl > 0)
             {
               steps[i] = (self->rl - state->pos) * rslope;
               break;
@@ -173,13 +182,13 @@ adsr_constructor (ptr_t ptr, va_list *args)
   adsr_t *self = (adsr_t *)
     ((const class_t *) mod_c)->construct (ptr, args);
   self->__parent.render = adsr_render;
-  self->al = 0.10;
+  self->al = 0.00;
   self->aa = 1.00;
-  self->dl = 0.10;
-  self->da = 0.50;
-  self->sl = 0.20;
-  self->sa = 0.75;
-  self->rl = 0.40;
+  self->dl = 0.00;
+  self->da = 1.00;
+  self->sl = 0.00;
+  self->sa = 1.00;
+  self->rl = 0.00;
   return self;
 }
 
@@ -191,6 +200,66 @@ adsr_destructor (ptr_t ptr)
     ((const class_t *) mod_c)->destruct (ptr);
   return self;
 }
+
+/* Macro for creating ADSR duration part getter functions.  */
+#define CREATE_LEN_GETTER(part, var)            \
+  real_t                                        \
+  fz_adsr_get_##part##_len (const adsr_t *adsr) \
+  {                                             \
+    return adsr ? adsr->var : 0;                \
+  }
+
+/* Macro for creating ADSR duration part setter functions.  */
+#define CREATE_LEN_SETTER(part, var)                     \
+  uint_t                                                 \
+  fz_adsr_set_##part##_len (adsr_t *adsr, real_t length) \
+  {                                                      \
+    if (!adsr || length < 0)                             \
+      return EINVAL;                                     \
+    adsr->var = length;                                  \
+    return 0;                                            \
+  }
+
+/* Macro for creating ADSR amplitude part getter functions.  */
+#define CREATE_AMP_GETTER(part, var)            \
+  real_t                                        \
+  fz_adsr_get_##part##_amp (const adsr_t *adsr) \
+  {                                             \
+    return adsr ? adsr->var : 0;                \
+  }
+
+/* Macro for creating ADSR amplitude part setter functions.  */
+#define CREATE_AMP_SETTER(part, var)                        \
+  uint_t                                                    \
+  fz_adsr_set_##part##_amp (adsr_t *adsr, real_t amplitude) \
+  {                                                         \
+    if (!adsr || amplitude < 0 || amplitude > 1)            \
+      return EINVAL;                                        \
+    adsr->var = amplitude;                                  \
+    return 0;                                               \
+  }
+
+/* Attack getters / setters.  */
+CREATE_LEN_GETTER (a, al)
+CREATE_LEN_SETTER (a, al)
+CREATE_AMP_GETTER (a, aa)
+CREATE_AMP_SETTER (a, aa)
+
+/* Decay getters / setters.  */
+CREATE_LEN_GETTER (d, dl)
+CREATE_LEN_SETTER (d, dl)
+CREATE_AMP_GETTER (d, da)
+CREATE_AMP_SETTER (d, da)
+
+/* Sustain getters / setters.  */
+CREATE_LEN_GETTER (s, sl)
+CREATE_LEN_SETTER (s, sl)
+CREATE_AMP_GETTER (s, sa)
+CREATE_AMP_SETTER (s, sa)
+
+/* Release getters / setters.  */
+CREATE_LEN_GETTER (r, rl)
+CREATE_LEN_SETTER (r, rl)
 
 /* ADSR class descriptor.  */
 static const class_t _adsr_c = {

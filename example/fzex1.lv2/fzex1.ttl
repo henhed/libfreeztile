@@ -79,6 +79,97 @@
         a lv2:InputPort ,
             lv2:ControlPort ;
         lv2:index 4 ;
+        lv2:name "Attack Velocity" ;
+        lv2:symbol "E1_ATK_AMP" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:designation param:attack ;
+        units:unit units:pc ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 5 ;
+        lv2:name "Attack Duration" ;
+        lv2:symbol "E1_ATK_LEN" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.1 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 3.0 ;
+        lv2:designation param:attack ;
+        units:unit units:s ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 6 ;
+        lv2:name "Decay Velocity" ;
+        lv2:symbol "E1_DCY_AMP" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.5 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:designation param:decay ;
+        units:unit units:pc ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 7 ;
+        lv2:name "Decay Duration" ;
+        lv2:symbol "E1_DCY_LEN" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.1 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 3.0 ;
+        lv2:designation param:decay ;
+        units:unit units:s ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 8 ;
+        lv2:name "Sustain Velocity" ;
+        lv2:symbol "E1_STN_AMP" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.8 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:designation param:sustain ;
+        units:unit units:pc ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 9 ;
+        lv2:name "Sustain Duration" ;
+        lv2:symbol "E1_STN_LEN" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.2 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 3.0 ;
+        lv2:designation param:sustain ;
+        units:unit units:s ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 10 ;
+        lv2:name "Release Duration" ;
+        lv2:symbol "E1_RLS_LEN" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.4 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 3.0 ;
+        lv2:designation param:release ;
+        units:unit units:s ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 11 ;
         lv2:name "Modulation Shape" ;
         lv2:symbol "E1_MOD_SHAPE" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -92,7 +183,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 5 ;
+        lv2:index 12 ;
         lv2:name "Modulation Speed" ;
         lv2:symbol "E1_MOD_FREQ" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -105,7 +196,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 6 ;
+        lv2:index 13 ;
         lv2:name "Modulation Depth" ;
         lv2:symbol "E1_MOD_DEPTH" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -117,7 +208,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 7 ;
+        lv2:index 14 ;
         lv2:name "Waveform" ;
         lv2:symbol "E2_FORM_SHAPE" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -131,7 +222,98 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 8 ;
+        lv2:index 15 ;
+        lv2:name "Attack Velocity" ;
+        lv2:symbol "E2_ATK_AMP" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 1.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:designation param:attack ;
+        units:unit units:pc ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 16 ;
+        lv2:name "Attack Duration" ;
+        lv2:symbol "E2_ATK_LEN" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.1 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 3.0 ;
+        lv2:designation param:attack ;
+        units:unit units:s ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 17 ;
+        lv2:name "Decay Velocity" ;
+        lv2:symbol "E2_DCY_AMP" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.5 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:designation param:decay ;
+        units:unit units:pc ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 18 ;
+        lv2:name "Decay Duration" ;
+        lv2:symbol "E2_DCY_LEN" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.1 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 3.0 ;
+        lv2:designation param:decay ;
+        units:unit units:s ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 19 ;
+        lv2:name "Sustain Velocity" ;
+        lv2:symbol "E2_STN_AMP" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.8 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:designation param:sustain ;
+        units:unit units:pc ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 20 ;
+        lv2:name "Sustain Duration" ;
+        lv2:symbol "E2_STN_LEN" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.2 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 3.0 ;
+        lv2:designation param:sustain ;
+        units:unit units:s ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 21 ;
+        lv2:name "Release Duration" ;
+        lv2:symbol "E2_RLS_LEN" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.4 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 3.0 ;
+        lv2:designation param:release ;
+        units:unit units:s ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 22 ;
         lv2:name "Modulation Shape" ;
         lv2:symbol "E2_MOD_SHAPE" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -145,7 +327,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 9 ;
+        lv2:index 23 ;
         lv2:name "Modulation Speed" ;
         lv2:symbol "E2_MOD_FREQ" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -158,7 +340,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 10 ;
+        lv2:index 24 ;
         lv2:name "Modulation Depth" ;
         lv2:symbol "E2_MOD_DEPTH" ;
         lv2:portProperty epp:hasStrictBounds ;

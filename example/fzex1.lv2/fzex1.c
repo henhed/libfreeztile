@@ -48,10 +48,24 @@ enum {
   AUDIO_OUT_RIGHT,
   MIDI_IN,
   E1_FORM_SHAPE,
+  E1_ATK_AMP,
+  E1_ATK_LEN,
+  E1_DCY_AMP,
+  E1_DCY_LEN,
+  E1_STN_AMP,
+  E1_STN_LEN,
+  E1_RLS_LEN,
   E1_MOD_SHAPE,
   E1_MOD_FREQ,
   E1_MOD_DEPTH,
   E2_FORM_SHAPE,
+  E2_ATK_AMP,
+  E2_ATK_LEN,
+  E2_DCY_AMP,
+  E2_DCY_LEN,
+  E2_STN_AMP,
+  E2_STN_LEN,
+  E2_RLS_LEN,
   E2_MOD_SHAPE,
   E2_MOD_FREQ,
   E2_MOD_DEPTH,
@@ -200,7 +214,23 @@ update_engine_controls (FzEx1 *plugin)
         e->form_shape = fz_form_set_shape (e->form,
                                            (int_t) form_shape);
 
-      /* Update LFO shape.  */
+      /* Update ADSR.  */
+      fz_adsr_set_a_amp (e->envelope,
+                         *NTH_ENGINE_PORT (plugin, E1_ATK_AMP, i));
+      fz_adsr_set_a_len (e->envelope,
+                         *NTH_ENGINE_PORT (plugin, E1_ATK_LEN, i));
+      fz_adsr_set_d_amp (e->envelope,
+                         *NTH_ENGINE_PORT (plugin, E1_DCY_AMP, i));
+      fz_adsr_set_d_len (e->envelope,
+                         *NTH_ENGINE_PORT (plugin, E1_DCY_LEN, i));
+      fz_adsr_set_s_amp (e->envelope,
+                         *NTH_ENGINE_PORT (plugin, E1_STN_AMP, i));
+      fz_adsr_set_s_len (e->envelope,
+                         *NTH_ENGINE_PORT (plugin, E1_STN_LEN, i));
+      fz_adsr_set_r_len (e->envelope,
+                         *NTH_ENGINE_PORT (plugin, E1_RLS_LEN, i));
+
+      /* Update Lfo Shape.  */
       float mod_shape = *NTH_ENGINE_PORT (plugin, E1_MOD_SHAPE, i);
       if (e->mod_shape != (int_t) mod_shape)
         e->mod_shape = fz_lfo_set_shape (e->modulator,
