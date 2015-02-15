@@ -34,6 +34,7 @@ typedef struct form_s
   list_t *shape;
   real_t shifting;
   real_t portamento;
+  real_t pitch;
 } form_t;
 
 /* Struct to keep track of individual voice states.  */
@@ -71,7 +72,8 @@ form_render (node_t *node, list_t *frames, const request_t *request)
   if (period == 0 || request->voice == NULL || request->srate <= 0)
     return 0;
 
-  freq = fz_voice_frequency (request->voice);
+  freq = fz_voice_frequency (request->voice)
+    * pow (TWELFTH_ROOT_OF_TWO, form->pitch);
   state = fz_node_state (node, request->voice, struct state_s);
   if (freq <= 0 || state == NULL)
     return 0;
@@ -164,6 +166,7 @@ form_constructor (ptr_t ptr, va_list *args)
   self->shape = fz_new_simple_vector (real_t);
   self->shifting = 0.5;
   self->portamento = 0;
+  self->pitch = 0;
   fz_form_set_shape (self, shape);
 
   return self;
@@ -218,6 +221,57 @@ fz_form_set_shape (form_t *form, int_t shape)
     }
 
   return shape;
+}
+
+/* Get FORMs shape shifting.  */
+real_t
+fz_form_get_shifting (const form_t *form)
+{
+  return form ? form->shifting : 0;
+}
+
+/* Set FORMs shape shifting.  */
+uint_t
+fz_form_set_shifting (form_t *form, real_t shifting)
+{
+  if (!form || shifting < 0 || shifting > 1)
+    return EINVAL;
+  form->shifting = shifting;
+  return 0;
+}
+
+/* Get FORMs portamento in seconds.  */
+real_t
+fz_form_get_portamento (const form_t *form)
+{
+  return form ? form->portamento : 0;
+}
+
+/* Set FORMs portamento in seconds.  */
+uint_t
+fz_form_set_portamento (form_t *form, real_t portamento)
+{
+  if (!form || portamento < 0)
+    return EINVAL;
+  form->portamento = portamento;
+  return 0;
+}
+
+/* Get FORMs pitch offset in semitones.  */
+real_t
+fz_form_get_pitch (const form_t *form)
+{
+  return form ? form->pitch : 0;
+}
+
+/* Set FORMs pitch offset in semitones.  */
+uint_t
+fz_form_set_pitch (form_t *form, real_t pitch)
+{
+  if (!form)
+    return EINVAL;
+  form->pitch = pitch;
+  return 0;
 }
 
 /* `form_c' class descriptor.  */

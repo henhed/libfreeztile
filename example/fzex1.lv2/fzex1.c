@@ -38,7 +38,7 @@
 #include "../../src/lfo.h"
 
 #define FZEX1_URI "http://www.freeztile.org/plugins/fzex1"
-#define POLYPHONY 10
+#define POLYPHONY 4
 #define NUM_ENGINES 2
 #define NUM_CHANNELS 2
 
@@ -48,6 +48,10 @@ enum {
   AUDIO_OUT_RIGHT,
   MIDI_IN,
   E1_FORM_SHAPE,
+  E1_FORM_SHIFT,
+  E1_FORM_PITCH,
+  E1_FORM_OFFSET,
+  E1_FORM_GLISS,
   E1_ATK_AMP,
   E1_ATK_LEN,
   E1_DCY_AMP,
@@ -59,6 +63,10 @@ enum {
   E1_MOD_FREQ,
   E1_MOD_DEPTH,
   E2_FORM_SHAPE,
+  E2_FORM_SHIFT,
+  E2_FORM_PITCH,
+  E2_FORM_OFFSET,
+  E2_FORM_GLISS,
   E2_ATK_AMP,
   E2_ATK_LEN,
   E2_DCY_AMP,
@@ -213,6 +221,15 @@ update_engine_controls (FzEx1 *plugin)
       if (e->form_shape != (int_t) form_shape)
         e->form_shape = fz_form_set_shape (e->form,
                                            (int_t) form_shape);
+      fz_form_set_shifting (e->form,
+                            *NTH_ENGINE_PORT (plugin, E1_FORM_SHIFT, i));
+
+      fz_form_set_pitch (e->form,
+                         *NTH_ENGINE_PORT (plugin, E1_FORM_PITCH, i)
+                         + *NTH_ENGINE_PORT (plugin, E1_FORM_OFFSET, i));
+
+      fz_form_set_portamento (e->form,
+                              *NTH_ENGINE_PORT (plugin, E1_FORM_GLISS, i));
 
       /* Update ADSR.  */
       fz_adsr_set_a_amp (e->envelope,
@@ -230,7 +247,7 @@ update_engine_controls (FzEx1 *plugin)
       fz_adsr_set_r_len (e->envelope,
                          *NTH_ENGINE_PORT (plugin, E1_RLS_LEN, i));
 
-      /* Update Lfo Shape.  */
+      /* Update LFO Shape.  */
       float mod_shape = *NTH_ENGINE_PORT (plugin, E1_MOD_SHAPE, i);
       if (e->mod_shape != (int_t) mod_shape)
         e->mod_shape = fz_lfo_set_shape (e->modulator,

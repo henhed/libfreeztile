@@ -33,6 +33,12 @@ __BEGIN_DECLS
 typedef struct form_s form_t;
 
 extern int_t fz_form_set_shape (form_t *, int_t);
+extern real_t fz_form_get_shifting (const form_t *);
+extern uint_t fz_form_set_shifting (form_t *, real_t);
+extern real_t fz_form_get_portamento (const form_t *);
+extern uint_t fz_form_set_portamento (form_t *, real_t);
+extern real_t fz_form_get_pitch (const form_t *);
+extern uint_t fz_form_set_pitch (form_t *, real_t);
 
 extern const class_t *form_c;
 
