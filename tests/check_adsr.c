@@ -116,10 +116,12 @@ START_TEST (test_adsr_render)
                    FORM_SLOT_AMP, NULL);
 
   request.srate = nframes * 2;
+  ck_assert (fz_adsr_is_silent (adsr, request.voice) == TRUE);
   fz_voice_press (request.voice, 20, 0.8);
 
   fz_clear (frames, nframes);
   fz_node_render ((node_t *) form, frames, &request);
+  ck_assert (fz_adsr_is_silent (adsr, request.voice) == FALSE);
   env = fz_modulate_unorm ((mod_t *) adsr, 1);
 
   fputs (header, tsv);
@@ -134,6 +136,7 @@ START_TEST (test_adsr_render)
   fz_voice_release (request.voice);
   fz_clear (frames, nframes);
   fz_node_render ((node_t *) form, frames, &request);
+  ck_assert (fz_adsr_is_silent (adsr, request.voice) == TRUE);
   env = fz_modulate_unorm ((mod_t *) adsr, 1);
 
   for (i = 0; i < nframes; ++i)

@@ -21,6 +21,7 @@
 #define FZ_DEFS_H 1
 
 #include <stdlib.h>
+#include <errno.h>
 #include "config.h"
 
 /* __BEGIN_DECLS is already defined in glibc.  */
@@ -69,5 +70,22 @@ typedef bool _Bool;
 #define TRUE 1
 
 typedef int_t (*cmp_f) (const ptr_t, const ptr_t);
+
+/* Define error codes.  */
+#ifndef EINVAL
+# define EINVAL 22
+#endif
+#ifndef ENOSYS
+# define ENOSYS 38
+#endif
+#ifndef ENODATA
+# define ENODATA 61
+#endif
+#ifndef EUNKNOWN
+# define EUNKNOWN 4081
+#endif
+#ifndef EIOOB
+# define EIOOB 4082
+#endif
 
 #endif /* ! FZ_DEFS_H */

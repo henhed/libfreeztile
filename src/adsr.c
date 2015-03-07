@@ -17,10 +17,10 @@
    along with libfreeztile; see the file COPYING.  If not see
    <http://www.gnu.org/licenses/>.  */
 
-#include <errno.h>
 #include "adsr.h"
 #include "mod.h"
 #include "private-mod.h"
+#include "defs.h"
 
 /* Struct to keep track of individual voice states.  */
 struct state_s {
@@ -199,6 +199,21 @@ adsr_destructor (ptr_t ptr)
   adsr_t *self = (adsr_t *)
     ((const class_t *) mod_c)->destruct (ptr);
   return self;
+}
+
+/* Get VOICEs current state in ADSR or a negtive error code.  */
+int_t
+fz_adsr_get_state (const adsr_t *adsr, const voice_t *voice)
+{
+  if (!adsr || !voice)
+    return -EINVAL;
+
+  mod_t *mod = (mod_t *) adsr;
+  struct state_s *state = fz_mod_state (mod, voice, struct state_s);
+  if (!state)
+    return -ENODATA;
+
+  return (int_t) state->state;
 }
 
 /* Macro for creating ADSR duration part getter functions.  */

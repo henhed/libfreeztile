@@ -34,6 +34,9 @@ __BEGIN_DECLS
 #define REQUEST_DEFAULT(voice) \
   {voice, REQUEST_SRATE_DEFAULT, REQUEST_ACCESS_INTERLEAVED}
 
+#define VOICE_POOL_PRIORITY_FIFO 0
+#define VOICE_POOL_PRIORITY_PRESSURE 1
+
 typedef struct voice_s voice_t;
 typedef struct vpool_s vpool_t;
 typedef struct request_s {
@@ -52,6 +55,8 @@ extern real_t fz_voice_pressure (const voice_t *);
 
 extern int_t fz_vpool_press (vpool_t *, uint_t, real_t);
 extern int_t fz_vpool_release (vpool_t *, uint_t);
+extern int_t fz_vpool_kill (vpool_t *, voice_t *);
+extern int_t fz_vpool_kill_id (vpool_t *, uint_t);
 extern const list_t * fz_vpool_voices (vpool_t *);
 
 extern real_t fz_note_frequency (const char *);

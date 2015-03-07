@@ -26,15 +26,23 @@
 #include "class.h"
 #include "list.h"
 
+#define VOICE_FLAG_NONE 0
+#define VOICE_FLAG_PRESSED (1 << 0)
+#define VOICE_FLAG_KILLED (1 << 1)
+
+#define FREQ_BY_ID(id) \
+  (A4_FREQ * pow (TWELFTH_ROOT_OF_TWO, ((int_t) (id)) - A4_ID))
+
+
 /* voice class struct.  */
 struct voice_s
 {
   const class_t *__class;
   uint_t id;
-  bool_t pressed;
   real_t frequency;
   real_t velocity;
   real_t pressure;
+  flags_t flags;
 };
 
 /* voice pool class struct.  */
@@ -43,6 +51,7 @@ struct vpool_s
   const class_t *__class;
   list_t *pool;
   list_t *active_voices;
+  uint_t priority;
 };
 
 /* Voice constructor.  */
@@ -51,10 +60,10 @@ voice_constructor (ptr_t ptr, va_list *args)
 {
   voice_t *self = (voice_t *) ptr;
   self->id = 0;
-  self->pressed = FALSE;
   self->frequency = 440;
   self->velocity = 0;
   self->pressure = self->velocity;
+  self->flags = VOICE_FLAG_NONE;
   return self;
 }
 
@@ -63,12 +72,12 @@ int_t
 fz_voice_press (voice_t *voice, real_t frequency, real_t velocity)
 {
   if (voice == NULL
-      || voice->pressed == TRUE
+      || (voice->flags & VOICE_FLAG_PRESSED)
       || frequency <= 0
       || (velocity <= 0 || velocity > 1))
     return EINVAL;
 
-  voice->pressed = TRUE;
+  voice->flags |= VOICE_FLAG_PRESSED;
   voice->frequency = frequency;
   voice->pressure = voice->velocity = velocity;
 
@@ -80,7 +89,7 @@ int_t
 fz_voice_aftertouch (voice_t *voice, real_t pressure)
 {
   if (voice == NULL
-      || voice->pressed == FALSE
+      || (~voice->flags & VOICE_FLAG_PRESSED)
       || (pressure <= 0 || pressure > 1))
     return EINVAL;
 
@@ -93,10 +102,10 @@ fz_voice_aftertouch (voice_t *voice, real_t pressure)
 int_t
 fz_voice_release (voice_t *voice)
 {
-  if (voice == NULL || voice->pressed == FALSE)
+  if (voice == NULL || (~voice->flags & VOICE_FLAG_PRESSED))
     return EINVAL;
 
-  voice->pressed = FALSE;
+  voice->flags &= ~VOICE_FLAG_PRESSED;
   voice->pressure = voice->velocity = 0;
 
   return 0;
@@ -106,7 +115,9 @@ fz_voice_release (voice_t *voice)
 bool_t
 fz_voice_pressed (const voice_t *voice)
 {
-  return voice == NULL ? FALSE : voice->pressed;
+  return voice != NULL && (voice->flags & VOICE_FLAG_PRESSED)
+    ? TRUE
+    : FALSE;
 }
 
 /* Report the current frequency of VOICE.  */
@@ -143,6 +154,7 @@ vpool_constructor (ptr_t ptr, va_list *args)
   /* Pre-allocate space for active voices.  */
   fz_clear (self->active_voices, fz_len (self->pool));
   fz_clear (self->active_voices, 0);
+  self->priority = VOICE_POOL_PRIORITY_FIFO;
   return self;
 }
 
@@ -154,6 +166,53 @@ vpool_destructor (ptr_t ptr)
   fz_del (self->active_voices);
   fz_del (self->pool);
   return self;
+}
+
+/* Active voice sort callback for pressure priority.  */
+static int_t
+voice_compare_pressure (const ptr_t a, const ptr_t b)
+{
+  const voice_t *va = *(const voice_t **) a;
+  const voice_t *vb = *(const voice_t **) b;
+  if (va->pressure < vb->pressure)
+    return -1;
+  else if (vb->pressure < va->pressure)
+    return 1;
+  return 0;
+}
+
+/* Prioritize active voices in POOL.  */
+static inline void
+vpool_prioritize (vpool_t *pool)
+{
+  /* Move killed voices back to pool.  */
+  voice_t *voice;
+  int_t i = ((int_t) fz_len (pool->active_voices)) - 1;
+  for (; i >= 0; --i)
+    {
+      voice = fz_ref_at (pool->active_voices, i, voice_t);
+      if (voice->flags & VOICE_FLAG_KILLED)
+        {
+          voice->flags &= ~VOICE_FLAG_KILLED;
+          fz_retain (voice);
+          fz_erase_one (pool->active_voices, i);
+          fz_push_one (pool->pool, voice);
+        }
+    }
+
+  /* Prioritize remaining active voices.  */
+  cmp_f prioritizer;
+  switch (pool->priority)
+    {
+    case VOICE_POOL_PRIORITY_PRESSURE:
+      prioritizer = voice_compare_pressure;
+      break;
+    default: /* VOICE_POOL_PRIORITY_FIFO */
+      prioritizer = NULL;
+      break;
+    }
+  if (prioritizer != NULL)
+    fz_sort (pool->active_voices, prioritizer);
 }
 
 /* Get active voice from given POOL by ID.  */
@@ -186,15 +245,16 @@ fz_vpool_press (vpool_t *pool, uint_t id, real_t velocity)
   size_t poolsize;
   size_t nactive;
   voice_t *voice = vpool_get_active_voice (pool, id);
-  real_t frequency = A4_FREQ * pow (TWELFTH_ROOT_OF_TWO,
-                                    ((int_t) id) - A4_ID);
+  real_t frequency = FREQ_BY_ID (id);
 
   if (voice != NULL)
     {
+      voice->flags &= ~VOICE_FLAG_KILLED;
       fz_voice_release (voice);
       return fz_voice_press (voice, frequency, velocity);
     }
 
+  vpool_prioritize (pool);
   poolsize = fz_len (pool->pool);
   nactive = fz_len (pool->active_voices);
 
@@ -209,11 +269,14 @@ fz_vpool_press (vpool_t *pool, uint_t id, real_t velocity)
     }
   else if (nactive > 0)
     {
-      /* Steal oldest voice (FIFO).  */
+      /* Steal lowest prioritized voice.  */
       voice = fz_ref_at (pool->active_voices, 0, voice_t);
       fz_retain (voice);
       fz_erase_one (pool->active_voices, 0);
-      fz_voice_release (voice);
+      if (fz_voice_pressed (voice))
+        {
+          fz_voice_release (voice);
+        }
     }
 
   voice->id = id;
@@ -235,11 +298,46 @@ fz_vpool_release (vpool_t *pool, uint_t id)
   return fz_voice_release (voice);
 }
 
+/* Inactivate VOICE in POOL.  */
+int_t
+fz_vpool_kill (vpool_t *pool, voice_t *voice)
+{
+  if (!pool || !voice)
+    return EINVAL;
+
+  int_t index = fz_index_of (pool->active_voices, (ptr_t) voice,
+                             fz_cmp_ptr);
+  if (index >= 0)
+    {
+      fz_voice_release (voice);
+      voice->flags |= VOICE_FLAG_KILLED;
+    }
+
+  return 0;
+}
+
+/* Inactivate voice with ID in POOL.  */
+int_t
+fz_vpool_kill_id (vpool_t *pool, uint_t id)
+{
+  if (!pool)
+    return EINVAL;
+
+  voice_t * voice = vpool_get_active_voice (pool, id);
+  if (voice)
+    return fz_vpool_kill (pool, voice);
+
+  return 0;
+}
+
 /* Get active voices from POOL.  */
 const list_t *
 fz_vpool_voices (vpool_t *pool)
 {
-  return pool == NULL ? NULL : pool->active_voices;
+  if (!pool)
+    return NULL;
+  vpool_prioritize (pool);
+  return pool->active_voices;
 }
 
 /* Interpret a string represented NOTE as a Hz frequency.  */

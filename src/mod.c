@@ -28,7 +28,7 @@
 #define MOD_RENDERED (1 << 0)
 
 struct voice_state_s {
-  voice_t *voice;
+  const voice_t *voice;
   ptr_t data;
 };
 
@@ -72,7 +72,8 @@ mod_destructor (ptr_t ptr)
 /* Get state data for the given MODULATOR and VOICE. If no data
    exists, SIZE bytes are allocetd and returned.  */
 ptr_t
-fz_mod_state_data (mod_t *modulator, voice_t *voice, size_t size)
+fz_mod_state_data (mod_t *modulator, const voice_t *voice,
+                   size_t size)
 {
   int_t i;
   size_t nstates;

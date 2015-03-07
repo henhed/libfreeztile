@@ -308,7 +308,7 @@ run (LV2_Handle instance, uint32_t nsamples)
   /* Render graph with each active voice.  */
   const list_t *voices = fz_vpool_voices (plugin->voice_pool);
   size_t nvoices = fz_len ((const ptr_t) voices);
-  for (uint_t vi; vi < nvoices; ++vi)
+  for (uint_t vi = 0; vi < nvoices; ++vi)
     {
       /* Prepare graph to generate NSAMPLES samples. This is not
          necessarily real-time safe but since we've prepared the graph
@@ -328,6 +328,19 @@ run (LV2_Handle instance, uint32_t nsamples)
           for (uint_t si = 0; si < nsamples; ++si)
             outputs[oi][si] += (float) sinks[oi][si];
         }
+
+      /* Help voice pool prioritizing voice stealing by killing voices
+         we know to be silent.  */
+      bool_t voice_is_silent = TRUE;
+      for (uint_t ei = 0; ei < NUM_ENGINES; ++ei)
+        if (!fz_adsr_is_silent (plugin->engines[ei].envelope,
+                                plugin->request.voice))
+          {
+            voice_is_silent = FALSE;
+            break;
+          }
+      if (voice_is_silent)
+        fz_vpool_kill (plugin->voice_pool, plugin->request.voice);
     }
 }
 

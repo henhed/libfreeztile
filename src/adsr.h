@@ -21,6 +21,7 @@
 #define FZ_ADSR_H 1
 
 #include "class.h"
+#include "voice.h"
 
 __BEGIN_DECLS
 
@@ -30,8 +31,13 @@ __BEGIN_DECLS
 #define ADSR_STATE_SUSTAIN 3
 #define ADSR_STATE_RELEASE 4
 
+#define fz_adsr_is_silent(adsr, voice) \
+  (fz_adsr_get_state ((adsr), (voice)) == ADSR_STATE_SILENT \
+   ? TRUE : FALSE)
+
 typedef struct adsr_s adsr_t;
 
+extern int_t fz_adsr_get_state (const adsr_t *, const voice_t *);
 extern real_t fz_adsr_get_a_len (const adsr_t *);
 extern uint_t fz_adsr_set_a_len (adsr_t *, real_t);
 extern real_t fz_adsr_get_a_amp (const adsr_t *);

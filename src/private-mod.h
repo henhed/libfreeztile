@@ -42,7 +42,7 @@ struct mod_s
   void (*freestate) (mod_t *, ptr_t);
 };
 
-extern ptr_t fz_mod_state_data (mod_t *, voice_t *, size_t);
+extern ptr_t fz_mod_state_data (mod_t *, const voice_t *, size_t);
 
 __END_DECLS
 
