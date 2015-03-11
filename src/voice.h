@@ -52,6 +52,7 @@ extern bool_t fz_voice_pressed (const voice_t *);
 extern real_t fz_voice_frequency (const voice_t *);
 extern real_t fz_voice_velocity (const voice_t *);
 extern real_t fz_voice_pressure (const voice_t *);
+extern bool_t fz_voice_repossessed (const voice_t *);
 
 extern int_t fz_vpool_press (vpool_t *, uint_t, real_t);
 extern int_t fz_vpool_release (vpool_t *, uint_t);

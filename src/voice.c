@@ -29,6 +29,9 @@
 #define VOICE_FLAG_NONE 0
 #define VOICE_FLAG_PRESSED (1 << 0)
 #define VOICE_FLAG_KILLED (1 << 1)
+#define VOICE_FLAG_REPOSSESSED (1 << 2)
+
+#define VPOOL_STACK_CAPACITY 32
 
 #define FREQ_BY_ID(id) \
   (A4_FREQ * pow (TWELFTH_ROOT_OF_TWO, ((int_t) (id)) - A4_ID))
@@ -52,7 +55,15 @@ struct vpool_s
   list_t *pool;
   list_t *active_voices;
   uint_t priority;
+  list_t *stack;
 };
+
+/* Data for stolen voices in vpool stack.  */
+typedef struct stack_voice_s
+{
+  uint_t id;
+  real_t pressure;
+} stack_voice_t;
 
 /* Voice constructor.  */
 static ptr_t
@@ -141,6 +152,15 @@ fz_voice_pressure (const voice_t *voice)
   return voice == NULL ? 0 : voice->pressure;
 }
 
+/* Check if VOICE has been repossessed by a previous key.  */
+bool_t
+fz_voice_repossessed (const voice_t *voice)
+{
+  return voice && (voice->flags & VOICE_FLAG_REPOSSESSED)
+    ? TRUE
+    : FALSE;
+}
+
 /* Voice pool constructor.  */
 static ptr_t
 vpool_constructor (ptr_t ptr, va_list *args)
@@ -149,11 +169,14 @@ vpool_constructor (ptr_t ptr, va_list *args)
   size_t polyphony = va_arg (*args, size_t);
   self->pool = fz_new_owning_vector (voice_t *);
   self->active_voices = fz_new_owning_vector (voice_t *);
+  self->stack = fz_new_simple_vector (stack_voice_t);
   for (; polyphony > 0; --polyphony)
     fz_push_one (self->pool, fz_new (voice_c));
-  /* Pre-allocate space for active voices.  */
+  /* Pre-allocate space for active and stolen voices.  */
   fz_clear (self->active_voices, fz_len (self->pool));
   fz_clear (self->active_voices, 0);
+  fz_clear (self->stack, VPOOL_STACK_CAPACITY);
+  fz_clear (self->stack, 0);
   self->priority = VOICE_POOL_PRIORITY_FIFO;
   return self;
 }
@@ -163,6 +186,7 @@ static ptr_t
 vpool_destructor (ptr_t ptr)
 {
   vpool_t *self = (vpool_t *) ptr;
+  fz_del (self->stack);
   fz_del (self->active_voices);
   fz_del (self->pool);
   return self;
@@ -242,15 +266,27 @@ fz_vpool_press (vpool_t *pool, uint_t id, real_t velocity)
   if (pool == NULL)
     return EINVAL;
 
+  int_t i;
   size_t poolsize;
-  size_t nactive;
+  size_t nactive = fz_len (pool->active_voices);
   voice_t *voice = vpool_get_active_voice (pool, id);
   real_t frequency = FREQ_BY_ID (id);
+  stack_voice_t stolen;
 
   if (voice != NULL)
     {
+      if (fz_voice_pressed (voice))
+        return EINVAL;
+      i = fz_index_of (pool->active_voices, voice, fz_cmp_ptr);
+      if (nactive > 1 && i < nactive - 1)
+        {
+          // Move the pressed voice to the bootom of the
+          // `active_voices' list for FIFO priority.
+          fz_retain (voice);
+          fz_erase_one (pool->active_voices, i);
+          fz_push_one (pool->active_voices, voice);
+        }
       voice->flags &= ~VOICE_FLAG_KILLED;
-      fz_voice_release (voice);
       return fz_voice_press (voice, frequency, velocity);
     }
 
@@ -275,11 +311,17 @@ fz_vpool_press (vpool_t *pool, uint_t id, real_t velocity)
       fz_erase_one (pool->active_voices, 0);
       if (fz_voice_pressed (voice))
         {
+          /* If the stolen voice is still pressed we'll remember it
+             and possibly revive it later.  */
+          stolen.id = voice->id;
+          stolen.pressure = voice->pressure;
+          fz_push_one (pool->stack, &stolen);
           fz_voice_release (voice);
         }
     }
 
   voice->id = id;
+  voice->flags &= ~VOICE_FLAG_REPOSSESSED;
   fz_push_one (pool->active_voices, voice);
   return fz_voice_press (voice, frequency, velocity);
 }
@@ -292,8 +334,30 @@ fz_vpool_release (vpool_t *pool, uint_t id)
     return EINVAL;
 
   voice_t *voice = vpool_get_active_voice (pool, id);
+  int_t i;
+  size_t nstolen = fz_len (pool->stack);
+  stack_voice_t *stolen;
   if (voice == NULL)
-    return EINVAL;
+    {
+      for (i = nstolen - 1; i >= 0; --i)
+        {
+          stolen = fz_ref_at (pool->stack, i, stack_voice_t);
+          if (stolen->id == id)
+            fz_erase_one (pool->stack, i);
+        }
+      return 0;
+    }
+
+  if (nstolen > 0)
+    {
+      stolen = fz_ref_at (pool->stack, nstolen - 1, stack_voice_t);
+      voice->id = stolen->id;
+      voice->pressure = stolen->pressure;
+      voice->frequency = FREQ_BY_ID (voice->id);
+      voice->flags |= VOICE_FLAG_REPOSSESSED;
+      fz_erase_one (pool->stack, nstolen - 1);
+      return 0;
+    }
 
   return fz_voice_release (voice);
 }
