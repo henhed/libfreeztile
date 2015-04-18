@@ -240,7 +240,7 @@ vpool_prioritize (vpool_t *pool)
 }
 
 /* Get active voice from given POOL by ID.  */
-static voice_t *
+static inline voice_t *
 vpool_get_active_voice (const vpool_t *pool, uint_t id)
 {
   if (pool == NULL)
@@ -257,6 +257,28 @@ vpool_get_active_voice (const vpool_t *pool, uint_t id)
     }
 
   return NULL;
+}
+
+/* Get index of active voice to steal.  */
+static inline int_t
+vpool_get_steal_voice_index (const vpool_t *pool)
+{
+  if (pool == NULL)
+    return -1;
+
+  int_t i;
+  size_t nvoices = fz_len (pool->active_voices);
+  for (i = 0; i < nvoices; ++i)
+    {
+      if (!fz_voice_pressed (fz_ref_at (pool->active_voices, i,
+                                        voice_t)))
+        return i;
+    }
+
+  if (nvoices > 0)
+    return 0;
+
+  return -1;
 }
 
 /* Press a voice from POOL.  */
@@ -306,9 +328,10 @@ fz_vpool_press (vpool_t *pool, uint_t id, real_t velocity)
   else if (nactive > 0)
     {
       /* Steal lowest prioritized voice.  */
-      voice = fz_ref_at (pool->active_voices, 0, voice_t);
+      i = vpool_get_steal_voice_index (pool);
+      voice = fz_ref_at (pool->active_voices, i, voice_t);
       fz_retain (voice);
-      fz_erase_one (pool->active_voices, 0);
+      fz_erase_one (pool->active_voices, i);
       if (fz_voice_pressed (voice))
         {
           /* If the stolen voice is still pressed we'll remember it
