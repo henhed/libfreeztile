@@ -36,6 +36,7 @@
 #include "../../src/form.h"
 #include "../../src/adsr.h"
 #include "../../src/lfo.h"
+#include "../../src/filter.h"
 
 #define FZEX1_URI "http://www.freeztile.org/plugins/fzex1"
 #define POLYPHONY 4
@@ -62,6 +63,9 @@ enum {
   E1_MOD_SHAPE,
   E1_MOD_FREQ,
   E1_MOD_DEPTH,
+  E1_FLT_TYPE,
+  E1_FLT_FREQ,
+  E1_FLT_RES,
   E2_FORM_SHAPE,
   E2_FORM_SHIFT,
   E2_FORM_PITCH,
@@ -77,6 +81,9 @@ enum {
   E2_MOD_SHAPE,
   E2_MOD_FREQ,
   E2_MOD_DEPTH,
+  E2_FLT_TYPE,
+  E2_FLT_FREQ,
+  E2_FLT_RES,
   NUM_PORTS
 };
 
@@ -86,6 +93,7 @@ typedef struct {
   form_t *form;
   int_t form_shape;
   adsr_t *envelope;
+  filter_t *filter;
   lfo_t *modulator;
   real_t mod_depth;
   int_t mod_shape;
@@ -161,6 +169,7 @@ activate (LV2_Handle instance)
       engine->form_shape = SHAPE_SINE;
       engine->form = fz_new (form_c, engine->form_shape);
       engine->envelope = fz_new (adsr_c);
+      engine->filter = fz_new (filter_c);
       engine->mod_shape = SHAPE_SINE;
       engine->mod_depth = 0;
       engine->modulator = fz_new (lfo_c, engine->mod_shape,
@@ -176,10 +185,15 @@ activate (LV2_Handle instance)
                        (mod_t *) engine->modulator, FORM_SLOT_FREQ,
                        &engine->mod_depth);
 
-      /* Add engine form to graph.  */
+      /* Add engine form and filter to graph.  */
       fz_graph_add_node (plugin->graph, (node_t *) engine->form);
+      fz_graph_add_node (plugin->graph, (node_t *) engine->filter);
+      fz_graph_connect (plugin->graph,
+                        (node_t *) engine->form,
+                        (node_t *) engine->filter);
       /* Nodes are retained by the graph and will be released when
          graph is deleted in `deactivate'.  */
+      fz_del (engine->filter);
       fz_del (engine->form);
     }
 
@@ -190,10 +204,10 @@ activate (LV2_Handle instance)
       fz_graph_add_node (plugin->graph, plugin->sinks[ci]);
       fz_del (plugin->sinks[ci]);
 
-      /* Connect engine forms to sinks.  */
+      /* Connect engine filters to sinks.  */
       for (ei = 0; ei < NUM_ENGINES; ++ei)
         fz_graph_connect (plugin->graph,
-                          (node_t *) plugin->engines[ei].form,
+                          (node_t *) plugin->engines[ei].filter,
                           plugin->sinks[ci]);
     }
 
@@ -259,6 +273,14 @@ update_engine_controls (FzEx1 *plugin)
 
       /* Update LFO depth.  */
       e->mod_depth = *NTH_ENGINE_PORT (plugin, E1_MOD_DEPTH, i);
+
+      /* Update filter type, cutoff and resonance.  */
+      fz_filter_set_type (e->filter, (int_t)
+                          *NTH_ENGINE_PORT (plugin, E1_FLT_TYPE, i));
+      fz_filter_set_frequency (e->filter,
+                               *NTH_ENGINE_PORT (plugin, E1_FLT_FREQ, i));
+      fz_filter_set_resonance (e->filter,
+                               *NTH_ENGINE_PORT (plugin, E1_FLT_RES, i));
     }
 }
 
