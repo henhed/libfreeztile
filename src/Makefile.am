@@ -12,5 +12,6 @@ libfreeztile_la_SOURCES =        \
     form.h form.c                \
     lfo.h lfo.c                  \
     adsr.h adsr.c                \
-    filter.h filter.c
+    filter.h filter.c            \
+    delay.h delay.c
 libfreeztile_la_LIBADD = -lm

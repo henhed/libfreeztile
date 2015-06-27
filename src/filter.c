@@ -1,4 +1,4 @@
-/* Form node implementation.
+/* Filter node implementation.
    Copyright (C) 2013-2015 Henrik Hedelund.
 
    This file is part of libfreeztile.
