@@ -10,7 +10,8 @@ TESTS =          \
     check_form   \
     check_lfo    \
     check_adsr   \
-    check_filter
+    check_filter \
+    check_delay
 check_PROGRAMS = \
     check_malloc \
     check_class  \
@@ -22,7 +23,8 @@ check_PROGRAMS = \
     check_form   \
     check_lfo    \
     check_adsr   \
-    check_filter
+    check_filter \
+    check_delay
 check_malloc_SOURCES = check_malloc.c $(top_builddir)/src/malloc.h
 check_malloc_CFLAGS = @CHECK_CFLAGS@
 check_malloc_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
@@ -56,3 +58,6 @@ check_adsr_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
 check_filter_SOURCES = check_filter.c $(top_builddir)/src/filter.h
 check_filter_CFLAGS = @CHECK_CFLAGS@
 check_filter_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
+check_delay_SOURCES = check_delay.c $(top_builddir)/src/delay.h
+check_delay_CFLAGS = @CHECK_CFLAGS@
+check_delay_LDADD = $(top_builddir)/src/libfreeztile.la @CHECK_LIBS@
