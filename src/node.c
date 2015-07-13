@@ -159,6 +159,21 @@ fz_node_connect (node_t *node, mod_t *mod, uint_t slot, ptr_t args)
   return 0;
 }
 
+/* Add mods connected to NODE into MODS.  */
+int_t
+fz_node_collect_mods (const node_t *node, list_t *mods)
+{
+  if (!node || !mods)
+    return EINVAL;
+
+  modconn_t *conn;
+  fz_map_each (node->mods, conn)
+    if (fz_index_of (mods, conn->mod, fz_cmp_ptr) < 0)
+      fz_push_one (mods, conn->mod);
+
+  return 0;
+}
+
 /* Prepare NODE to render NFRAMES frames.  */
 void
 fz_node_prepare (node_t *node, size_t nframes)

@@ -189,6 +189,7 @@ START_TEST (test_fz_node_connect)
   real_t src[] = {rand (), rand (), rand (), rand (), rand ()};
   real_t multi = ((test_node_t *) test_node)->multiplier;
   mod_t *mod = fz_new (test_mod_c);
+  list_t *mods = fz_new_owning_vector (mod_t *);
   request_t request = {};
   real_t modarg = 2.2;
   int_t lhs, rhs;
@@ -207,10 +208,20 @@ START_TEST (test_fz_node_connect)
                "Expected connect to fail with NULL mod but got '%d'",
                err);
 
+  fz_node_collect_mods (test_node, mods);
+  fail_unless (fz_len (mods) == 0,
+               "Expected node to have 0 mods but it had '%d'",
+               fz_len (mods));
+
   err = fz_node_connect (test_node, mod, TEST_MOD_SLOT, &modarg);
   fail_unless (err == 0,
                "Expected connect to succeed but got '%d'",
                err);
+
+  fz_node_collect_mods (test_node, mods);
+  fail_unless (fz_len (mods) == 1,
+               "Expected node to have 1 mod but it had '%d'",
+               fz_len (mods));
 
   fz_node_render (test_node, frames, &request);
   for (i = 0; i < nframes; ++i)
@@ -223,7 +234,22 @@ START_TEST (test_fz_node_connect)
                    lhs, rhs);
     }
 
-  fz_del (mod);
+  /* Add same mod to a second slot.  */
+  fz_node_connect (test_node, mod, TEST_MOD_SLOT + 1, &modarg);
+  fz_node_collect_mods (test_node, mods);
+  fail_unless (fz_len (mods) == 1,
+               "Expected node to have 1 unique mod but got '%d'",
+               fz_len (mods));
+
+  /* Add new mod to a third slot.  */
+  fz_node_connect (test_node, fz_new (test_mod_c), TEST_MOD_SLOT + 2,
+                   NULL);
+  fz_node_collect_mods (test_node, mods);
+  fail_unless (fz_len (mods) == 2,
+               "Expected node to have 2 unique mods but got '%d'",
+               fz_len (mods));
+
+  fz_del (mods);
   fz_del (frames);
 }
 END_TEST
