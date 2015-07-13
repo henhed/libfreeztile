@@ -302,6 +302,45 @@
         a lv2:InputPort ,
             lv2:ControlPort ;
         lv2:index 21 ;
+        lv2:name "Delay Gain" ;
+        lv2:symbol "E1_DLY_GAIN" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:designation param:wetLevel ;
+        units:unit units:pc ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 22 ;
+        lv2:name "Delay Feedback" ;
+        lv2:symbol "E1_DLY_FEEDBACK" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:designation param:wetLevel ;
+        units:unit units:pc ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 23 ;
+        lv2:name "Delay Time" ;
+        lv2:symbol "E1_DLY_TIME" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 3.0 ;
+        lv2:designation param:wetLevel ;
+        units:unit units:s ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine1> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 24 ;
         lv2:name "Waveform" ;
         lv2:symbol "E2_FORM_SHAPE" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -315,7 +354,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 22 ;
+        lv2:index 25 ;
         lv2:name "Pulse Width" ;
         lv2:symbol "E2_FORM_SHIFT" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -328,7 +367,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 23 ;
+        lv2:index 26 ;
         lv2:name "Pitch (cents)" ;
         lv2:symbol "E2_FORM_PITCH" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -341,7 +380,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 24 ;
+        lv2:index 27 ;
         lv2:name "Pitch (semitones)" ;
         lv2:symbol "E2_FORM_OFFSET" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -355,7 +394,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 25 ;
+        lv2:index 28 ;
         lv2:name "Portamento" ;
         lv2:symbol "E2_FORM_GLISS" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -368,7 +407,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 26 ;
+        lv2:index 29 ;
         lv2:name "Attack Velocity" ;
         lv2:symbol "E2_ATK_AMP" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -381,7 +420,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 27 ;
+        lv2:index 30 ;
         lv2:name "Attack Duration" ;
         lv2:symbol "E2_ATK_LEN" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -394,7 +433,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 28 ;
+        lv2:index 31 ;
         lv2:name "Decay Velocity" ;
         lv2:symbol "E2_DCY_AMP" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -407,7 +446,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 29 ;
+        lv2:index 32 ;
         lv2:name "Decay Duration" ;
         lv2:symbol "E2_DCY_LEN" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -420,7 +459,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 30 ;
+        lv2:index 33 ;
         lv2:name "Sustain Velocity" ;
         lv2:symbol "E2_STN_AMP" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -433,7 +472,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 31 ;
+        lv2:index 34 ;
         lv2:name "Sustain Duration" ;
         lv2:symbol "E2_STN_LEN" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -446,7 +485,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 32 ;
+        lv2:index 35 ;
         lv2:name "Release Duration" ;
         lv2:symbol "E2_RLS_LEN" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -459,7 +498,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 33 ;
+        lv2:index 36 ;
         lv2:name "Modulation Shape" ;
         lv2:symbol "E2_MOD_SHAPE" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -473,7 +512,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 34 ;
+        lv2:index 37 ;
         lv2:name "Modulation Speed" ;
         lv2:symbol "E2_MOD_FREQ" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -486,7 +525,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 35 ;
+        lv2:index 38 ;
         lv2:name "Modulation Depth" ;
         lv2:symbol "E2_MOD_DEPTH" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -498,7 +537,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 36 ;
+        lv2:index 39 ;
         lv2:name "Filter" ;
         lv2:symbol "E2_FLT_TYPE" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -511,7 +550,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 37 ;
+        lv2:index 40 ;
         lv2:name "Cutoff" ;
         lv2:symbol "E2_FLT_FREQ" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -525,7 +564,7 @@
     ] , [
         a lv2:InputPort ,
             lv2:ControlPort ;
-        lv2:index 38 ;
+        lv2:index 41 ;
         lv2:name "Resonance" ;
         lv2:symbol "E2_FLT_RES" ;
         lv2:portProperty epp:hasStrictBounds ;
@@ -534,5 +573,44 @@
         lv2:maximum 1.0 ;
         lv2:designation param:resonance ;
         units:unit units:pc ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 42 ;
+        lv2:name "Delay Gain" ;
+        lv2:symbol "E2_DLY_GAIN" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:designation param:wetLevel ;
+        units:unit units:pc ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 43 ;
+        lv2:name "Delay Feedback" ;
+        lv2:symbol "E2_DLY_FEEDBACK" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 1.0 ;
+        lv2:designation param:wetLevel ;
+        units:unit units:pc ;
+        pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
+    ] , [
+        a lv2:InputPort ,
+            lv2:ControlPort ;
+        lv2:index 44 ;
+        lv2:name "Delay Time" ;
+        lv2:symbol "E2_DLY_TIME" ;
+        lv2:portProperty epp:hasStrictBounds ;
+        lv2:default 0.0 ;
+        lv2:minimum 0.0 ;
+        lv2:maximum 3.0 ;
+        lv2:designation param:wetLevel ;
+        units:unit units:s ;
         pg:group <http://www.freeztile.org/plugins/fzex1#group_engine2> ;
     ] .

@@ -37,6 +37,7 @@
 #include "../../src/adsr.h"
 #include "../../src/lfo.h"
 #include "../../src/filter.h"
+#include "../../src/delay.h"
 
 #define FZEX1_URI "http://www.freeztile.org/plugins/fzex1"
 #define POLYPHONY 4
@@ -66,6 +67,9 @@ enum {
   E1_FLT_TYPE,
   E1_FLT_FREQ,
   E1_FLT_RES,
+  E1_DLY_GAIN,
+  E1_DLY_FEEDBACK,
+  E1_DLY_TIME,
   E2_FORM_SHAPE,
   E2_FORM_SHIFT,
   E2_FORM_PITCH,
@@ -84,6 +88,9 @@ enum {
   E2_FLT_TYPE,
   E2_FLT_FREQ,
   E2_FLT_RES,
+  E2_DLY_GAIN,
+  E2_DLY_FEEDBACK,
+  E2_DLY_TIME,
   NUM_PORTS
 };
 
@@ -94,6 +101,7 @@ typedef struct {
   int_t form_shape;
   adsr_t *envelope;
   filter_t *filter;
+  delay_t *delay;
   lfo_t *modulator;
   real_t mod_depth;
   int_t mod_shape;
@@ -170,6 +178,7 @@ activate (LV2_Handle instance)
       engine->form = fz_new (form_c, engine->form_shape);
       engine->envelope = fz_new (adsr_c);
       engine->filter = fz_new (filter_c);
+      engine->delay = fz_new (delay_c);
       engine->mod_shape = SHAPE_SINE;
       engine->mod_depth = 0;
       engine->modulator = fz_new (lfo_c, engine->mod_shape,
@@ -185,14 +194,19 @@ activate (LV2_Handle instance)
                        (mod_t *) engine->modulator, FORM_SLOT_FREQ,
                        &engine->mod_depth);
 
-      /* Add engine form and filter to graph.  */
+      /* Add engine form, filter and delay to graph.  */
       fz_graph_add_node (plugin->graph, (node_t *) engine->form);
       fz_graph_add_node (plugin->graph, (node_t *) engine->filter);
+      fz_graph_add_node (plugin->graph, (node_t *) engine->delay);
       fz_graph_connect (plugin->graph,
                         (node_t *) engine->form,
                         (node_t *) engine->filter);
+      fz_graph_connect (plugin->graph,
+                        (node_t *) engine->filter,
+                        (node_t *) engine->delay);
       /* Nodes are retained by the graph and will be released when
          graph is deleted in `deactivate'.  */
+      fz_del (engine->delay);
       fz_del (engine->filter);
       fz_del (engine->form);
     }
@@ -204,10 +218,10 @@ activate (LV2_Handle instance)
       fz_graph_add_node (plugin->graph, plugin->sinks[ci]);
       fz_del (plugin->sinks[ci]);
 
-      /* Connect engine filters to sinks.  */
+      /* Connect engine delays to sinks.  */
       for (ei = 0; ei < NUM_ENGINES; ++ei)
         fz_graph_connect (plugin->graph,
-                          (node_t *) plugin->engines[ei].filter,
+                          (node_t *) plugin->engines[ei].delay,
                           plugin->sinks[ci]);
     }
 
@@ -281,6 +295,14 @@ update_engine_controls (FzEx1 *plugin)
                                *NTH_ENGINE_PORT (plugin, E1_FLT_FREQ, i));
       fz_filter_set_resonance (e->filter,
                                *NTH_ENGINE_PORT (plugin, E1_FLT_RES, i));
+
+      /* Update delay gain, feedback and time.  */
+      fz_delay_set_gain (e->delay,
+                         *NTH_ENGINE_PORT (plugin, E1_DLY_GAIN, i));
+      fz_delay_set_feedback (e->delay,
+                             *NTH_ENGINE_PORT (plugin, E1_DLY_FEEDBACK, i));
+      fz_delay_set_delay (e->delay,
+                          *NTH_ENGINE_PORT (plugin, E1_DLY_TIME, i));
     }
 }
 
@@ -351,18 +373,18 @@ run (LV2_Handle instance, uint32_t nsamples)
             outputs[oi][si] += (float) sinks[oi][si];
         }
 
-      /* Help voice pool prioritizing voice stealing by killing voices
-         we know to be silent.  */
-      bool_t voice_is_silent = TRUE;
-      for (uint_t ei = 0; ei < NUM_ENGINES; ++ei)
-        if (!fz_adsr_is_silent (plugin->engines[ei].envelope,
-                                plugin->request.voice))
-          {
-            voice_is_silent = FALSE;
-            break;
-          }
-      if (voice_is_silent)
-        fz_vpool_kill (plugin->voice_pool, plugin->request.voice);
+      /* /\* Help voice pool prioritizing voice stealing by killing voices */
+      /*    we know to be silent.  *\/ */
+      /* bool_t voice_is_silent = TRUE; */
+      /* for (uint_t ei = 0; ei < NUM_ENGINES; ++ei) */
+      /*   if (!fz_adsr_is_silent (plugin->engines[ei].envelope, */
+      /*                           plugin->request.voice)) */
+      /*     { */
+      /*       voice_is_silent = FALSE; */
+      /*       break; */
+      /*     } */
+      /* if (voice_is_silent) */
+      /*   fz_vpool_kill (plugin->voice_pool, plugin->request.voice); */
     }
 }
 
