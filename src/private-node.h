@@ -23,6 +23,7 @@
 #include "node.h"
 #include "class.h"
 #include "list.h"
+#include "map.h"
 
 __BEGIN_DECLS
 
@@ -40,13 +41,13 @@ struct node_s
 {
   const class_t *__class;
   list_t *vstates;
-  list_t *mods;
+  map_t *mods;
   int_t (*render) (node_t *, list_t *, const request_t *);
   void (*freestate) (node_t *, ptr_t);
 };
 
 extern ptr_t fz_node_state_data (node_t *, voice_t *, size_t);
-extern ptr_t fz_node_modargs (node_t *, uint_t);
+extern ptr_t fz_node_modargs (const node_t *, uint_t);
 extern const real_t * fz_node_modulate (node_t *, uint_t,
                                         real_t, real_t, real_t);
 

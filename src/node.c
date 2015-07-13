@@ -25,6 +25,7 @@
 #include "malloc.h"
 #include "class.h"
 #include "list.h"
+#include "map.h"
 #include "mod.h"
 
 /* Voice - state mapping struct.  */
@@ -34,11 +35,10 @@ struct voice_state_s {
 };
 
 /* Mod connection struct.  */
-struct modconn_s {
+typedef struct {
   mod_t *mod;
-  uint_t slot;
   ptr_t args;
-};
+} modconn_t;
 
 /* Node constructor.  */
 static ptr_t
@@ -46,7 +46,7 @@ node_constructor (ptr_t ptr, va_list *args)
 {
   node_t *self = (node_t *) ptr;
   self->vstates = fz_new_simple_vector (struct voice_state_s);
-  self->mods = fz_new_simple_vector (struct modconn_s);
+  self->mods = fz_new (map_c, self, NULL, NULL);
   self->render = NULL;
   self->freestate = NULL;
   return self;
@@ -59,7 +59,6 @@ node_destructor (ptr_t ptr)
   node_t *self = (node_t *) ptr;
   struct voice_state_s *state;
   size_t nvstates = fz_len (self->vstates);
-  size_t nmods = fz_len (self->mods);
   uint_t i;
 
   for (i = 0; i < nvstates; ++i)
@@ -71,8 +70,9 @@ node_destructor (ptr_t ptr)
     }
 
   /* Modulators are retained in `fz_node_connect'.  */
-  for (i = 0; i < nmods; ++i)
-    fz_del (fz_ref_at (self->mods, i, struct modconn_s)->mod);
+  modconn_t *conn;
+  fz_map_each (self->mods, conn)
+    fz_del (conn->mod);
 
   fz_del (self->vstates);
   fz_del (self->mods);
@@ -114,33 +114,13 @@ fz_node_state_data (node_t *node, voice_t *voice, size_t size)
   return NULL;
 }
 
-/* Get `modconn_s' pointer for given SLOT.  */
-static struct modconn_s *
-get_modconn (node_t *self, uint_t slot)
-{
-  struct modconn_s *conn;
-  size_t nmods;
-  uint_t i;
-
-  if (self == NULL)
-    return NULL;
-
-  nmods = fz_len (self->mods);
-  for (i = 0; i < nmods; ++i)
-    {
-      conn = fz_ref_at (self->mods, i, struct modconn_s);
-      if (conn->slot == slot)
-        return conn;
-    }
-
-  return NULL;
-}
-
 /* Return modulator arg pointer for given SLOT.  */
 ptr_t
-fz_node_modargs (node_t *self, uint_t slot)
+fz_node_modargs (const node_t *self, uint_t slot)
 {
-  struct modconn_s *conn = get_modconn (self, slot);
+  if (!self)
+    return NULL;
+  modconn_t *conn = fz_map_get (self->mods, slot);
   return conn == NULL ? NULL : conn->args;
 }
 
@@ -149,34 +129,32 @@ const real_t *
 fz_node_modulate (node_t *self, uint_t slot,
                   real_t seed, real_t lo, real_t up)
 {
-  const list_t *modulation;
-  struct modconn_s *conn = get_modconn (self, slot);
-  if (conn == NULL)
+  if (!self)
     return NULL;
 
-  modulation = fz_modulate (conn->mod, seed, lo, up);
-  if (modulation == NULL)
+  modconn_t *conn = fz_map_get (self->mods, slot);
+  if (!conn)
+    return NULL;
+
+  const list_t *modulation = fz_modulate (conn->mod, seed, lo, up);
+  if (!modulation)
     return NULL;
 
   return (const real_t *) fz_list_data (modulation);
 }
 
-/* Connect MOD to SELF on SLOT.  */
+/* Connect MOD to NODE on SLOT.  */
 int_t
-fz_node_connect (node_t *self, mod_t *mod, uint_t slot, ptr_t args)
+fz_node_connect (node_t *node, mod_t *mod, uint_t slot, ptr_t args)
 {
-  struct modconn_s *oldconn;
-  struct modconn_s newconn = {mod, slot, args};
-
-  if (self == NULL || newconn.mod == NULL)
+  if (!node || !mod || fz_map_get (node->mods, slot))
     return EINVAL;
 
-  oldconn = get_modconn (self, newconn.slot);
-  if (oldconn != NULL)
-    return EINVAL; /* SLOT already in use.  */
-
-  fz_retain (newconn.mod);
-  fz_push_one (self->mods, &newconn);
+  modconn_t *conn = fz_map_set (node->mods, slot, NULL,
+                                sizeof (modconn_t));
+  conn->mod = mod;
+  conn->args = args;
+  fz_retain (conn->mod);
 
   return 0;
 }
@@ -185,14 +163,11 @@ fz_node_connect (node_t *self, mod_t *mod, uint_t slot, ptr_t args)
 void
 fz_node_prepare (node_t *node, size_t nframes)
 {
-  if (node == NULL)
+  if (!node)
     return;
-
-  uint_t i;
-  size_t nmods = fz_len (node->mods);
-  for (i = 0; i < nmods; ++i)
-    fz_mod_prepare (fz_ref_at (node->mods, i, struct modconn_s)->mod,
-                    nframes);
+  modconn_t *conn;
+  fz_map_each (node->mods, conn)
+    fz_mod_prepare (conn->mod, nframes);
 }
 
 /* Render frames from NODE into FRAMES.  */
@@ -213,11 +188,9 @@ fz_node_render (node_t *node,
   fz_node_prepare (node, nframes);
 
   /* Render modulators first.  */
-  uint_t i;
-  size_t nmods = fz_len (node->mods);
-  for (i = 0; i < nmods; ++i)
-    fz_mod_render (fz_ref_at (node->mods, i,
-                              struct modconn_s)->mod, request);
+  modconn_t *conn;
+  fz_map_each (node->mods, conn)
+    fz_mod_render (conn->mod, request);
 
   return node->render (node, frames, request);
 }
