@@ -1,5 +1,5 @@
 /* Header file declaring voice class interface.
-   Copyright (C) 2013-2014 Henrik Hedelund.
+   Copyright (C) 2013-2015 Henrik Hedelund.
 
    This file is part of libfreeztile.
 
@@ -28,11 +28,13 @@ __BEGIN_DECLS
 #define A4_ID 69
 #define A4_FREQ 440.0
 #define TWELFTH_ROOT_OF_TWO 1.05946309435929526
-#define REQUEST_SRATE_DEFAULT 44100
-#define REQUEST_ACCESS_INTERLEAVED 0
-#define REQUEST_ACCESS_NONINTERLEAVED 1
+
+#ifndef DEFAULT_SAMPLE_RATE
+# define DEFAULT_SAMPLE_RATE 44100
+#endif
+
 #define REQUEST_DEFAULT(voice) \
-  {voice, REQUEST_SRATE_DEFAULT, REQUEST_ACCESS_INTERLEAVED}
+  {voice}
 
 #define VOICE_POOL_PRIORITY_FIFO 0
 #define VOICE_POOL_PRIORITY_PRESSURE 1
@@ -41,9 +43,10 @@ typedef struct voice_s voice_t;
 typedef struct vpool_s vpool_t;
 typedef struct request_s {
   voice_t *voice;
-  real_t srate;
-  int_t access;
 } request_t;
+
+extern real_t fz_get_sample_rate ();
+extern int_t fz_set_sample_rate (real_t);
 
 extern int_t fz_voice_press (voice_t *, real_t, real_t);
 extern int_t fz_voice_aftertouch (voice_t *, real_t);

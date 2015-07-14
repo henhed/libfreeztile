@@ -24,6 +24,10 @@
 
 __BEGIN_DECLS
 
+#ifndef DELAY_TIME_MAX
+# define DELAY_TIME_MAX 3
+#endif
+
 typedef struct delay_s delay_t;
 
 extern real_t fz_delay_get_gain (const delay_t *);

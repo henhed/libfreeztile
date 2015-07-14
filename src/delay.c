@@ -37,6 +37,28 @@ struct state_s
   uint_t bufpos;
 };
 
+/* State init callback.  */
+static void
+delay_state_init (node_t *node, voice_t *voice, ptr_t state)
+{
+  (void) node;
+  (void) voice;
+  struct state_s *_state = (struct state_s *) state;
+  _state->ringbuf = fz_new_simple_vector (real_t);
+  _state->bufpos = 0;
+  fz_clear (_state->ringbuf,
+            (size_t) (fz_get_sample_rate () * DELAY_TIME_MAX));
+}
+
+/* State cleanup callback.  */
+static void
+delay_state_free (node_t *node, voice_t *voice, ptr_t state)
+{
+  (void) node;
+  (void) voice;
+  fz_del (((struct state_s *) state)->ringbuf);
+}
+
 /* Aquire state instance for given VOICE and LENGTH.  */
 static struct state_s *
 get_voice_state (node_t *node, voice_t *voice, size_t length)
@@ -46,15 +68,6 @@ get_voice_state (node_t *node, voice_t *voice, size_t length)
   struct state_s *state = fz_node_state (node, voice);
   if (!state)
     return NULL;
-
-  if (!state->ringbuf)
-    {
-      /* Return new empty state.  */
-      state->ringbuf = fz_new_simple_vector (real_t);
-      fz_clear (state->ringbuf, length);
-      state->bufpos = 0;
-      return state;
-    }
 
   curlen = fz_len (state->ringbuf);
   if (length > curlen)
@@ -94,10 +107,7 @@ delay_render (node_t *node, list_t *frames, const request_t *request)
   uint_t i;
   real_t in;
 
-  if (nframes == 0 || request->srate <= 0)
-    return 0;
-
-  buflen = (size_t) (request->srate * delay->delay);
+  buflen = (size_t) (fz_get_sample_rate () * delay->delay);
   if (buflen == 0)
     return nframes;
 
@@ -118,15 +128,6 @@ delay_render (node_t *node, list_t *frames, const request_t *request)
   return nframes;
 }
 
-/* State cleanup callback.  */
-static void
-delay_freestate (node_t *node, voice_t *voice, ptr_t state)
-{
-  (void) node;
-  (void) voice;
-  fz_del (((struct state_s *) state)->ringbuf);
-}
-
 /* Delay constructor. */
 static ptr_t
 delay_constructor (ptr_t ptr, va_list *args)
@@ -134,7 +135,8 @@ delay_constructor (ptr_t ptr, va_list *args)
   delay_t *self = (delay_t *)
     ((const class_t *) node_c)->construct (ptr, args);
   self->__parent.state_size = sizeof (struct state_s);
-  self->__parent.state_free = delay_freestate;
+  self->__parent.state_init = delay_state_init;
+  self->__parent.state_free = delay_state_free;
   self->__parent.render = delay_render;
   self->feedback = 0;
   self->gain = 0;
@@ -196,7 +198,7 @@ fz_delay_get_delay (const delay_t *delay)
 int_t
 fz_delay_set_delay (delay_t *delay, real_t time)
 {
-  if (!delay || time < 0)
+  if (!delay || time < 0 || time > DELAY_TIME_MAX)
     return EINVAL;
   delay->delay = time;
   return 0;

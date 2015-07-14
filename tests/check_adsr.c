@@ -1,5 +1,5 @@
 /* Tests for `adsr.h' interface.
-   Copyright (C) 2013-2014 Henrik Hedelund.
+   Copyright (C) 2013-2015 Henrik Hedelund.
 
    This file is part of libfreeztile.
 
@@ -104,6 +104,8 @@ START_TEST (test_adsr_render)
   uint_t i;
   int_t err;
 
+  fz_set_sample_rate (nframes * 2);
+
   fz_adsr_set_a_len (adsr, 0.10);
   fz_adsr_set_a_amp (adsr, 1.00);
   fz_adsr_set_d_len (adsr, 0.10);
@@ -115,7 +117,6 @@ START_TEST (test_adsr_render)
   fz_node_connect ((node_t *) form, (mod_t *) adsr,
                    FORM_SLOT_AMP, NULL);
 
-  request.srate = nframes * 2;
   ck_assert (fz_adsr_is_silent (adsr, request.voice) == TRUE);
   fz_voice_press (request.voice, 20, 0.8);
 

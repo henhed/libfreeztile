@@ -43,7 +43,7 @@ get_peak_amplitude (const filter_t *filter, real_t frequency)
   form_t *form = fz_new (form_c, SHAPE_SINE);
   request_t request = REQUEST_DEFAULT (fz_new (voice_c));
   list_t *frames = fz_new_simple_vector (real_t);
-  size_t nframes = ((real_t) request.srate / frequency) * 50;
+  size_t nframes = (fz_get_sample_rate () / frequency) * 50;
 
   /* Render FILTERed sine into FRAMES.  */
   fz_voice_press (request.voice, frequency, 1);
@@ -91,7 +91,7 @@ START_TEST (test_filter)
   fz_filter_set_resonance (filter, 0.3);
 
   /* Plot amplitude response up to half sample rate.  */
-  for (i = 100; i < REQUEST_SRATE_DEFAULT / 2; i += 100)
+  for (i = 100; i < DEFAULT_SAMPLE_RATE / 2; i += 100)
     {
       /* Plot cutoff frequencies up to 20 kHz.  */
       for (j = 5; j <= nbands; j += 5)

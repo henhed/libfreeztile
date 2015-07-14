@@ -1,5 +1,5 @@
 /* ADSR modulator interface implementation.
-   Copyright (C) 2013-2014 Henrik Hedelund.
+   Copyright (C) 2013-2015 Henrik Hedelund.
 
    This file is part of libfreeztile.
 
@@ -57,10 +57,11 @@ adsr_render (mod_t *mod, const request_t *request)
   size_t nrendered;
   real_t pa, aa, da, sa, ra;
   real_t aslope, dslope, sslope, rslope;
+  real_t rate = 1. / fz_get_sample_rate ();
   struct state_s *state = fz_mod_state (mod, request->voice,
                                         struct state_s);
 
-  if (state == NULL || request->srate <= 0)
+  if (state == NULL)
     return -EINVAL;
 
   pressed = fz_voice_pressed (request->voice);
@@ -156,7 +157,7 @@ adsr_render (mod_t *mod, const request_t *request)
           break;
         }
 
-      state->pos += 1. / request->srate;
+      state->pos += rate;
     }
 
   if (nrendered > 0)

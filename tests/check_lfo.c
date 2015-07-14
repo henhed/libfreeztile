@@ -1,5 +1,5 @@
 /* Tests for `lfo.h' interface.
-   Copyright (C) 2013-2014 Henrik Hedelund.
+   Copyright (C) 2013-2015 Henrik Hedelund.
 
    This file is part of libfreeztile.
 
@@ -63,13 +63,14 @@ START_TEST (test_lfo_render)
   int_t err;
   uint_t i;
 
+  fz_set_sample_rate (nframes / 2);
+
   fz_clear (frames, nframes);
   fz_clear (fmframes, nframes);
   fz_node_connect ((node_t *) fmform, (mod_t *) lfo,
                    FORM_SLOT_FREQ, &depth);
 
   fz_voice_press (request.voice, 2, 1);
-  request.srate = nframes / 2;
   fz_node_render ((node_t *) form, frames, &request);
   fz_node_render ((node_t *) fmform, fmframes, &request);
   /* Modulation is already rendered in `fz_node_render'.  */

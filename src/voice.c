@@ -1,5 +1,5 @@
 /* Implementation of voice class interface.
-   Copyright (C) 2013-2014 Henrik Hedelund.
+   Copyright (C) 2013-2015 Henrik Hedelund.
 
    This file is part of libfreeztile.
 
@@ -36,6 +36,8 @@
 #define FREQ_BY_ID(id) \
   (A4_FREQ * pow (TWELFTH_ROOT_OF_TWO, ((int_t) (id)) - A4_ID))
 
+/* Global sample rate.  */
+static real_t global_sample_rate = DEFAULT_SAMPLE_RATE;
 
 /* voice class struct.  */
 struct voice_s
@@ -64,6 +66,25 @@ typedef struct stack_voice_s
   uint_t id;
   real_t pressure;
 } stack_voice_t;
+
+/* Get global sample rate.  */
+real_t
+fz_get_sample_rate ()
+{
+  return global_sample_rate;
+}
+
+/* Set global sample rate.  */
+int_t
+fz_set_sample_rate (real_t rate)
+{
+  if (rate > 0)
+    {
+      global_sample_rate = rate;
+      return 0;
+    }
+  return EINVAL;
+}
 
 /* Voice constructor.  */
 static ptr_t
@@ -303,7 +324,7 @@ fz_vpool_press (vpool_t *pool, uint_t id, real_t velocity)
       i = fz_index_of (pool->active_voices, voice, fz_cmp_ptr);
       if (nactive > 1 && (uint_t) i < nactive - 1)
         {
-          // Move the pressed voice to the bootom of the
+          // Move the pressed voice to the bottom of the
           // `active_voices' list for FIFO priority.
           fz_retain (voice);
           fz_erase_one (pool->active_voices, i);

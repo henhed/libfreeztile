@@ -56,6 +56,7 @@ form_render (node_t *node, list_t *frames, const request_t *request)
   real_t *framedata = fz_list_data (frames);
   real_t *formdata = fz_list_data (form->shape);
   size_t period = fz_len (form->shape);
+  real_t rate = fz_get_sample_rate ();
   real_t pos;
   real_t shift;
   real_t freq;
@@ -69,7 +70,7 @@ form_render (node_t *node, list_t *frames, const request_t *request)
   real_t *fmodarg;
   const real_t *fmoddata;
 
-  if (period == 0 || request->voice == NULL || request->srate <= 0)
+  if (period == 0 || request->voice == NULL)
     return 0;
 
   freq = fz_voice_frequency (request->voice)
@@ -88,7 +89,7 @@ form_render (node_t *node, list_t *frames, const request_t *request)
     }
   if (form->portamento > 0)
     freqd = (state->tofreq - state->fromfreq)
-      / (request->srate * form->portamento);
+      / (rate * form->portamento);
   else
     {
       freqd = 0;
@@ -104,8 +105,8 @@ form_render (node_t *node, list_t *frames, const request_t *request)
   fupper = (freq * pow (TWELFTH_ROOT_OF_TWO, fmoddepth)) - freq;
   flower = (freq * pow (TWELFTH_ROOT_OF_TWO, -fmoddepth)) - freq;
   fmoddata = fz_node_modulate (node, FORM_SLOT_FREQ, 1,
-                               1. / (request->srate / flower),
-                               1. / (request->srate / fupper));
+                               1. / (rate / flower),
+                               1. / (rate / fupper));
 
   for (; i < nframes; ++i)
     {
@@ -145,7 +146,7 @@ form_render (node_t *node, list_t *frames, const request_t *request)
       else
         state->currfreq = freq;
 
-      state->pos += (1. / (request->srate / state->currfreq))
+      state->pos += (1. / (rate / state->currfreq))
         + (fmoddata ? fmoddata[i] : 0);
       while (state->pos >= 1)
         state->pos -= 1;

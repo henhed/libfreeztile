@@ -145,7 +145,7 @@ instantiate (const LV2_Descriptor *descriptor, double rate,
     }
 
   plugin->midi_urid = map->map (map->handle, LV2_MIDI__MidiEvent);
-  plugin->request.srate = (real_t) rate;
+  fz_set_sample_rate (rate);
 
   return (LV2_Handle) plugin;
 }

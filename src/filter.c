@@ -51,11 +51,8 @@ filter_render (node_t *node, list_t *frames, const request_t *request)
   struct state_s *state;
   size_t nframes = fz_len (frames);
   real_t *framedata = fz_list_data (frames);
-  if (nframes == 0 || request->srate <= 0)
-    return 0;
-
   uint_t i = 0;
-  real_t freq = filter->frequency / request->srate;
+  real_t freq = filter->frequency / fz_get_sample_rate ();
   real_t q = 1. - freq;
   real_t p = freq + (.8 * freq * q);
   real_t f = p + p - 1.;
@@ -127,7 +124,7 @@ filter_constructor (ptr_t ptr, va_list *args)
   self->__parent.state_size = sizeof (struct state_s);
   self->__parent.render = filter_render;
   self->type = FILTER_TYPE_LOWPASS;
-  self->frequency = 20000.0;
+  self->frequency = fz_get_sample_rate () / 2;
   self->resonance = .0;
   return self;
 }

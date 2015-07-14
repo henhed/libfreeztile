@@ -122,7 +122,8 @@ START_TEST (test_delay_output)
   /* Apply delay to signal.  */
   fz_delay_set_gain (delay, 0.5);
   fz_delay_set_feedback (delay, 0.75);
-  fz_delay_set_delay (delay, (nframes / request.srate) * 0.031);
+  fz_delay_set_delay (delay,
+                      (nframes / fz_get_sample_rate ()) * 0.031);
   ck_assert (fz_node_render ((node_t *) delay, frames, &request)
              == nframes);
 
