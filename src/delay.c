@@ -43,7 +43,7 @@ get_voice_state (node_t *node, voice_t *voice, size_t length)
 {
   size_t curlen;
   uint_t diff;
-  struct state_s *state = fz_node_state (node, voice, struct state_s);
+  struct state_s *state = fz_node_state (node, voice);
   if (!state)
     return NULL;
 
@@ -120,8 +120,10 @@ delay_render (node_t *node, list_t *frames, const request_t *request)
 
 /* State cleanup callback.  */
 static void
-delay_freestate (node_t *node, ptr_t state)
+delay_freestate (node_t *node, voice_t *voice, ptr_t state)
 {
+  (void) node;
+  (void) voice;
   fz_del (((struct state_s *) state)->ringbuf);
 }
 
@@ -131,8 +133,9 @@ delay_constructor (ptr_t ptr, va_list *args)
 {
   delay_t *self = (delay_t *)
     ((const class_t *) node_c)->construct (ptr, args);
+  self->__parent.state_size = sizeof (struct state_s);
+  self->__parent.state_free = delay_freestate;
   self->__parent.render = delay_render;
-  self->__parent.freestate = delay_freestate;
   self->feedback = 0;
   self->gain = 0;
   self->delay = 0;

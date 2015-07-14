@@ -60,7 +60,7 @@ filter_render (node_t *node, list_t *frames, const request_t *request)
   real_t f = p + p - 1.;
   q = filter->resonance * (1. + (.5 * q * (1. - q + 5.6 * q * q)));
 
-  state = fz_node_state (node, request->voice, struct state_s);
+  state = fz_node_state (node, request->voice);
   if (state == NULL)
     return 0;
 
@@ -123,6 +123,7 @@ filter_constructor (ptr_t ptr, va_list *args)
 {
   filter_t *self = (filter_t *)
     ((const class_t *) node_c)->construct (ptr, args);
+  self->__parent.state_size = sizeof (struct state_s);
   self->__parent.render = filter_render;
   self->type = FILTER_TYPE_LOWPASS;
   self->frequency = 20000.0;

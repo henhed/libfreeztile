@@ -1,5 +1,5 @@
 /* Form node implementation.
-   Copyright (C) 2013-2014 Henrik Hedelund.
+   Copyright (C) 2013-2015 Henrik Hedelund.
 
    This file is part of libfreeztile.
 
@@ -74,7 +74,7 @@ form_render (node_t *node, list_t *frames, const request_t *request)
 
   freq = fz_voice_frequency (request->voice)
     * pow (TWELFTH_ROOT_OF_TWO, form->pitch);
-  state = fz_node_state (node, request->voice, struct state_s);
+  state = fz_node_state (node, request->voice);
   if (freq <= 0 || state == NULL)
     return 0;
 
@@ -162,6 +162,7 @@ form_constructor (ptr_t ptr, va_list *args)
     ((const class_t *) node_c)->construct (ptr, args);
   int_t shape = va_arg (*args, int_t);
 
+  self->__parent.state_size = sizeof (struct state_s);
   self->__parent.render = form_render;
   self->shape = fz_new_simple_vector (real_t);
   self->shifting = 0.5;

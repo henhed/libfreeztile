@@ -1,5 +1,5 @@
 /* Private header file exposing node class struct.
-   Copyright (C) 2013-2014 Henrik Hedelund.
+   Copyright (C) 2013-2015 Henrik Hedelund.
 
    This file is part of libfreeztile.
 
@@ -27,9 +27,6 @@
 
 __BEGIN_DECLS
 
-#define fz_node_state(node, voice, type) \
-  ((type *) fz_node_state_data (node, voice, sizeof (type)))
-
 #define fz_node_modulate_snorm(node, slot, seed) \
   fz_node_modulate (node, slot, seed, -1,  1)
 
@@ -40,13 +37,15 @@ __BEGIN_DECLS
 struct node_s
 {
   const class_t *__class;
-  list_t *vstates;
   map_t *mods;
+  map_t *states;
+  size_t state_size;
+  void (*state_init) (node_t *, voice_t *, ptr_t);
+  void (*state_free) (node_t *, voice_t *, ptr_t);
   int_t (*render) (node_t *, list_t *, const request_t *);
-  void (*freestate) (node_t *, ptr_t);
 };
 
-extern ptr_t fz_node_state_data (node_t *, voice_t *, size_t);
+extern ptr_t fz_node_state (node_t *, const voice_t *);
 extern ptr_t fz_node_modargs (const node_t *, uint_t);
 extern const real_t * fz_node_modulate (node_t *, uint_t,
                                         real_t, real_t, real_t);

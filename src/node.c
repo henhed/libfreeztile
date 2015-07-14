@@ -1,5 +1,5 @@
 /* Implementation of node class interface.
-   Copyright (C) 2013-2014 Henrik Hedelund.
+   Copyright (C) 2013-2015 Henrik Hedelund.
 
    This file is part of libfreeztile.
 
@@ -28,27 +28,43 @@
 #include "map.h"
 #include "mod.h"
 
-/* Voice - state mapping struct.  */
-struct voice_state_s {
-  voice_t *voice;
-  ptr_t data;
-};
-
 /* Mod connection struct.  */
 typedef struct {
   mod_t *mod;
   ptr_t args;
 } modconn_t;
 
+/* Voice state map init callback.  */
+static void
+state_init (map_t *map, voice_t *voice, ptr_t state)
+{
+  node_t *node = fz_map_owner (map);
+  if (node->state_init)
+    node->state_init (node, voice, state);
+  fz_retain (voice);
+}
+
+/* Voice state map free callback.  */
+static void
+state_free (map_t *map, voice_t *voice, ptr_t state)
+{
+  node_t *node = fz_map_owner (map);
+  if (node->state_free)
+    node->state_free (node, voice, state);
+  fz_del (voice);
+}
+
 /* Node constructor.  */
 static ptr_t
 node_constructor (ptr_t ptr, va_list *args)
 {
   node_t *self = (node_t *) ptr;
-  self->vstates = fz_new_simple_vector (struct voice_state_s);
   self->mods = fz_new (map_c, self, NULL, NULL);
+  self->states = fz_new (map_c, self, state_init, state_free);
+  self->state_size = 0;
+  self->state_init = NULL;
+  self->state_free = NULL;
   self->render = NULL;
-  self->freestate = NULL;
   return self;
 }
 
@@ -57,61 +73,30 @@ static ptr_t
 node_destructor (ptr_t ptr)
 {
   node_t *self = (node_t *) ptr;
-  struct voice_state_s *state;
-  size_t nvstates = fz_len (self->vstates);
-  uint_t i;
-
-  for (i = 0; i < nvstates; ++i)
-    {
-      state = fz_ref_at (self->vstates, i, struct voice_state_s);
-      if (self->freestate != NULL)
-        self->freestate (self, state->data);
-      fz_free (state->data);
-    }
+  modconn_t *conn;
 
   /* Modulators are retained in `fz_node_connect'.  */
-  modconn_t *conn;
   fz_map_each (self->mods, conn)
     fz_del (conn->mod);
 
-  fz_del (self->vstates);
+  fz_del (self->states);
   fz_del (self->mods);
   return self;
 }
 
-/* Get state data for the given NODE and VOICE. If no data
-   exists, SIZE bytes are allocetd and returned.  */
+/* Get state data for the given NODE and VOICE.  */
 ptr_t
-fz_node_state_data (node_t *node, voice_t *voice, size_t size)
+fz_node_state (node_t *node, const voice_t *voice)
 {
-  int_t i;
-  size_t nstates;
-  struct voice_state_s *state;
-  struct voice_state_s newstate;
-
-  if (node == NULL || voice == NULL)
+  if (!node || !voice || node->state_size == 0)
     return NULL;
 
-  nstates = fz_len (node->vstates);
-  for (i = 0; i < nstates; ++i)
-    {
-      state = fz_ref_at (node->vstates, i, struct voice_state_s);
-      if (state->voice == voice)
-        return state->data;
-    }
+  uintptr_t key = (uintptr_t) voice;
+  ptr_t state = fz_map_get (node->states, key);
+  if (!state)
+    state = fz_map_set (node->states, key, NULL, node->state_size);
 
-  if (size == 0)
-    return NULL;
-
-  newstate.voice = voice;
-  newstate.data = fz_malloc (size);
-
-  i = fz_push_one (node->vstates, &newstate);
-  if (i >= 0)
-    return fz_ref_at (node->vstates, i,
-                      struct voice_state_s)->data;
-
-  return NULL;
+  return state;
 }
 
 /* Return modulator arg pointer for given SLOT.  */
