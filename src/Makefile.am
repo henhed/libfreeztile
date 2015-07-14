@@ -1,4 +1,5 @@
 # Process this file with automake to produce Makefile.in.
+AM_CFLAGS = -Wall -Werror -Wextra
 lib_LTLIBRARIES = libfreeztile.la
 libfreeztile_la_SOURCES =        \
     config.h defs.h              \

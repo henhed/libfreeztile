@@ -36,6 +36,7 @@ struct voice_state_s {
 static ptr_t
 mod_constructor (ptr_t ptr, va_list *args)
 {
+  (void) args;
   mod_t *self = (mod_t *) ptr;
   self->stepbuf = fz_new_simple_vector (real_t);
   self->modbuf = fz_new_simple_vector (real_t);
@@ -84,7 +85,7 @@ fz_mod_state_data (mod_t *modulator, const voice_t *voice,
     return NULL;
 
   nstates = fz_len (modulator->vstates);
-  for (i = 0; i < nstates; ++i)
+  for (i = 0; (uint_t) i < nstates; ++i)
     {
       state = fz_ref_at (modulator->vstates, i, struct voice_state_s);
       if (state->voice == voice)

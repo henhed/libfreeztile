@@ -69,6 +69,7 @@ typedef struct stack_voice_s
 static ptr_t
 voice_constructor (ptr_t ptr, va_list *args)
 {
+  (void) args;
   voice_t *self = (voice_t *) ptr;
   self->id = 0;
   self->frequency = 440;
@@ -266,7 +267,7 @@ vpool_get_steal_voice_index (const vpool_t *pool)
   if (pool == NULL)
     return -1;
 
-  int_t i;
+  uint_t i;
   size_t nvoices = fz_len (pool->active_voices);
   for (i = 0; i < nvoices; ++i)
     {
@@ -300,7 +301,7 @@ fz_vpool_press (vpool_t *pool, uint_t id, real_t velocity)
       if (fz_voice_pressed (voice))
         return EINVAL;
       i = fz_index_of (pool->active_voices, voice, fz_cmp_ptr);
-      if (nactive > 1 && i < nactive - 1)
+      if (nactive > 1 && (uint_t) i < nactive - 1)
         {
           // Move the pressed voice to the bootom of the
           // `active_voices' list for FIFO priority.

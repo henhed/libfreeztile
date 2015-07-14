@@ -58,6 +58,7 @@ state_free (map_t *map, voice_t *voice, ptr_t state)
 static ptr_t
 node_constructor (ptr_t ptr, va_list *args)
 {
+  (void) args;
   node_t *self = (node_t *) ptr;
   self->mods = fz_new (map_c, self, NULL, NULL);
   self->states = fz_new (map_c, self, state_init, state_free);

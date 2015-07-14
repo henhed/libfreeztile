@@ -17,6 +17,7 @@
    along with libfreeztile; see the file COPYING.  If not see
    <http://www.gnu.org/licenses/>.  */
 
+#include <string.h>
 #include "filter.h"
 #include "node.h"
 #include "private-node.h"

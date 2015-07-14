@@ -74,7 +74,7 @@ static const list_t *
 graph_node_edges (const graph_t *graph, const node_t *node)
 {
   int_t index = graph_node_index (graph, node);
-  return index >= 0 && index < fz_len (graph->am)
+  return index >= 0 && (uint_t) index < fz_len (graph->am)
     ? fz_ref_at (graph->am, index, list_t)
     : NULL;
 }
@@ -106,7 +106,7 @@ graph_edge_ptr (const graph_t *graph, const node_t *source,
     return NULL;
 
   int_t index = graph_node_index (graph, sink);
-  if (index < 0 || index >= fz_len ((const ptr_t) edges))
+  if (index < 0 || (uint_t) index >= fz_len ((const ptr_t) edges))
     return NULL;
 
   return fz_ref_at (edges, index, real_t);
@@ -131,12 +131,12 @@ graph_path_exists (const graph_t *graph, const node_t *source,
   if (fz_val_at (edges, snkidx, real_t) >= 0)
     return TRUE;
 
-  int_t index;
+  uint_t index;
   size_t nedges = fz_len ((const ptr_t) edges);
   node_t *adjacent;
   for (index = 0; index < nedges; ++index)
     {
-      if (index == srcidx || index == snkidx
+      if (index == (uint_t) srcidx || index == (uint_t) snkidx
           || fz_val_at (edges, index, real_t) < 0)
         /* We've already checked for self-loop, adjacency and edge < 0
            means there's no connection.  */
@@ -316,7 +316,7 @@ graph_node_render (graph_t *graph, node_t *node,
   size_t nnodes = fz_len (graph->nodes);
   for (srcidx = 0; srcidx < nnodes; ++srcidx)
     {
-      if (srcidx == index)
+      if (srcidx == (uint_t) index)
         continue;
 
       node_t *source = fz_ref_at (graph->nodes, srcidx, node_t);
@@ -330,7 +330,8 @@ graph_node_render (graph_t *graph, node_t *node,
         return err; /* Relay failed render.  */
 
       uint_t frame;
-      size_t nsrcframes = err < nframes ? err : nframes;
+      size_t nsrcframes = (size_t) err < nframes
+        ? (size_t) err : nframes;
       real_t *srcframes = fz_list_data (fz_ref_at (graph->buffers,
                                                    srcidx, list_t));
       for (frame = 0; frame < nsrcframes; ++frame)

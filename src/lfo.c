@@ -41,10 +41,10 @@ lfo_render (mod_t *mod, const request_t *request)
 {
   lfo_t *self = (lfo_t *) mod;
   voice_t **voiceref = fz_mod_state (mod, request->voice, voice_t *);
-  request_t formrequest = {};
+  request_t formrequest;
   real_t *steps;
   int_t nrendered;
-  uint_t i;
+  int_t i;
 
   if (voiceref == NULL)
     /* Probably because `request->voice' is NULL.  */
