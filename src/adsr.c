@@ -46,7 +46,7 @@ typedef struct adsr_s
 
 /* `fz_mod_render' callback.  */
 static int_t
-adsr_render (mod_t *mod, const request_t *request)
+adsr_render (mod_t *mod, const voice_t *voice)
 {
   adsr_t *self = (adsr_t *) mod;
   bool_t pressed;
@@ -58,15 +58,14 @@ adsr_render (mod_t *mod, const request_t *request)
   real_t pa, aa, da, sa, ra;
   real_t aslope, dslope, sslope, rslope;
   real_t rate = 1. / fz_get_sample_rate ();
-  struct state_s *state = fz_mod_state (mod, request->voice,
-                                        struct state_s);
+  struct state_s *state = fz_mod_state (mod, voice, struct state_s);
 
   if (state == NULL)
     return -EINVAL;
 
-  pressed = fz_voice_pressed (request->voice);
-  pressure = fz_voice_pressure (request->voice);
-  freq = fz_voice_frequency (request->voice);
+  pressed = fz_voice_pressed (voice);
+  pressure = fz_voice_pressure (voice);
+  freq = fz_voice_frequency (voice);
 
   pa = state->pa;
   aa = self->aa * pressure;

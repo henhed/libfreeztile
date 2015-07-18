@@ -112,7 +112,6 @@ typedef struct {
 typedef struct {
   void *ports[NUM_PORTS];
   LV2_URID midi_urid;
-  request_t request;
   vpool_t *voice_pool;
   graph_t *graph;
   Engine engines[NUM_ENGINES];
@@ -350,18 +349,20 @@ run (LV2_Handle instance, uint32_t nsamples)
   };
 
   /* Render graph with each active voice.  */
+  voice_t *voice;
   const list_t *voices = fz_vpool_voices (plugin->voice_pool);
   size_t nvoices = fz_len ((const ptr_t) voices);
   for (uint_t vi = 0; vi < nvoices; ++vi)
     {
+      voice = fz_ref_at (voices, vi, voice_t);
+
       /* Prepare graph to generate NSAMPLES samples. This is not
          necessarily real-time safe but since we've prepared the graph
          in `activate', graphs' internal buffers should not be
          reallocated unless NSAMPLES is a really large number.  */
       fz_graph_prepare (plugin->graph, nsamples);
 
-      plugin->request.voice = fz_ref_at (voices, vi, voice_t);
-      fz_graph_render (plugin->graph, &plugin->request);
+      fz_graph_render (plugin->graph, voice);
 
       /* Copy samples from graph sinks to the output ports.  */
       for (uint_t oi = 0; oi < NUM_CHANNELS; ++oi)
@@ -378,13 +379,13 @@ run (LV2_Handle instance, uint32_t nsamples)
       /* bool_t voice_is_silent = TRUE; */
       /* for (uint_t ei = 0; ei < NUM_ENGINES; ++ei) */
       /*   if (!fz_adsr_is_silent (plugin->engines[ei].envelope, */
-      /*                           plugin->request.voice)) */
+      /*                           voice)) */
       /*     { */
       /*       voice_is_silent = FALSE; */
       /*       break; */
       /*     } */
       /* if (voice_is_silent) */
-      /*   fz_vpool_kill (plugin->voice_pool, plugin->request.voice); */
+      /*   fz_vpool_kill (plugin->voice_pool, voice); */
     }
 }
 

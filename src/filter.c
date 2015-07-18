@@ -45,7 +45,7 @@ static const struct state_s zero_state = {0, 0, 0, 0, 0};
 
 /* Filter node renderer.  */
 static int_t
-filter_render (node_t *node, list_t *frames, const request_t *request)
+filter_render (node_t *node, list_t *frames, const voice_t *voice)
 {
   filter_t *filter = (filter_t *) node;
   struct state_s *state;
@@ -58,7 +58,7 @@ filter_render (node_t *node, list_t *frames, const request_t *request)
   real_t f = p + p - 1.;
   q = filter->resonance * (1. + (.5 * q * (1. - q + 5.6 * q * q)));
 
-  state = fz_node_state (node, request->voice);
+  state = fz_node_state (node, voice);
   if (state == NULL)
     return 0;
 

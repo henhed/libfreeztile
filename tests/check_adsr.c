@@ -99,7 +99,7 @@ START_TEST (test_adsr_render)
   size_t nframes = 150;
   node_t *form = fz_new (form_c, SHAPE_SINE);
   list_t *frames = fz_new_simple_vector (real_t);
-  request_t request = REQUEST_DEFAULT (fz_new (voice_c));
+  voice_t *voice = fz_new (voice_c);
   const list_t *env;
   uint_t i;
   int_t err;
@@ -117,12 +117,12 @@ START_TEST (test_adsr_render)
   fz_node_connect ((node_t *) form, (mod_t *) adsr,
                    FORM_SLOT_AMP, NULL);
 
-  ck_assert (fz_adsr_is_silent (adsr, request.voice) == TRUE);
-  fz_voice_press (request.voice, 20, 0.8);
+  ck_assert (fz_adsr_is_silent (adsr, voice) == TRUE);
+  fz_voice_press (voice, 20, 0.8);
 
   fz_clear (frames, nframes);
-  fz_node_render ((node_t *) form, frames, &request);
-  ck_assert (fz_adsr_is_silent (adsr, request.voice) == FALSE);
+  fz_node_render ((node_t *) form, frames, voice);
+  ck_assert (fz_adsr_is_silent (adsr, voice) == FALSE);
   env = fz_modulate_unorm ((mod_t *) adsr, 1);
 
   fputs (header, tsv);
@@ -134,10 +134,10 @@ START_TEST (test_adsr_render)
       fputs (val, tsv);
     }
 
-  fz_voice_release (request.voice);
+  fz_voice_release (voice);
   fz_clear (frames, nframes);
-  fz_node_render ((node_t *) form, frames, &request);
-  ck_assert (fz_adsr_is_silent (adsr, request.voice) == TRUE);
+  fz_node_render ((node_t *) form, frames, voice);
+  ck_assert (fz_adsr_is_silent (adsr, voice) == TRUE);
   env = fz_modulate_unorm ((mod_t *) adsr, 1);
 
   for (i = 0; i < nframes; ++i)
@@ -149,16 +149,15 @@ START_TEST (test_adsr_render)
     }
 
   fz_mod_prepare ((mod_t *) adsr, nframes);
-  err = fz_mod_render ((mod_t *) adsr, &request);
+  err = fz_mod_render ((mod_t *) adsr, voice);
   fail_unless (err == nframes,
                "Expected ADSR to render %u frames but it returned %d.",
                (unsigned) nframes, err);
 
-  fz_del (request.voice);
-  request.voice = NULL;
+  fz_del (voice);
 
   fz_mod_prepare ((mod_t *) adsr, nframes);
-  err = fz_mod_render ((mod_t *) adsr, &request);
+  err = fz_mod_render ((mod_t *) adsr, NULL);
   fail_unless (err < 0,
                "Expected ADSR to fail with NULL voice but got '%d'.",
                err);

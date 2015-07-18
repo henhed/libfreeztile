@@ -56,7 +56,6 @@ START_TEST (test_form_shapes)
     fz_new_simple_vector (real_t)
   };
   size_t nframes = 300;
-  request_t request = REQUEST_DEFAULT (NULL);
   const char *header = "\"Sine\"\t\"Triangle\"\t\"Square\"\n";
   char val[16]; /* Needs to hold at least "d.dddd\t\0".  */
   uint_t i, j;
@@ -66,14 +65,14 @@ START_TEST (test_form_shapes)
   /* Render forms to frame buffers.  */
   for (i = 0; i < nforms; ++i)
     {
-      request.voice = fz_new (voice_c);
-      fz_voice_press (request.voice, 440, 1);
+      voice_t *voice = fz_new (voice_c);
+      fz_voice_press (voice, 440, 1);
 
       fz_clear (framebufs[i], nframes);
       ck_assert (fz_node_render ((node_t *) forms[i],
                                  framebufs[i],
-                                 &request) == nframes);
-      fz_del (request.voice);
+                                 voice) == nframes);
+      fz_del (voice);
       fz_del (forms[i]);
     }
 

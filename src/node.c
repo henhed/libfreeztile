@@ -175,10 +175,9 @@ fz_node_prepare (node_t *node, size_t nframes)
 int_t
 fz_node_render (node_t *node,
                 list_t *frames,
-                const request_t *request)
+                const voice_t *voice)
 {
-  if (node == NULL || frames == NULL || request == NULL
-      || !fz_instance_of (frames, vector_c))
+  if (!node || !frames || !fz_instance_of (frames, vector_c))
     return -EINVAL;
 
   size_t nframes = fz_len (frames);
@@ -191,9 +190,9 @@ fz_node_render (node_t *node,
   /* Render modulators first.  */
   modconn_t *conn;
   fz_map_each (node->mods, conn)
-    fz_mod_render (conn->mod, request);
+    fz_mod_render (conn->mod, voice);
 
-  return node->render (node, frames, request);
+  return node->render (node, frames, voice);
 }
 
 /* `node_c' class descriptor.  */

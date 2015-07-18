@@ -42,7 +42,7 @@ struct node_s
   size_t state_size;
   void (*state_init) (node_t *, voice_t *, ptr_t);
   void (*state_free) (node_t *, voice_t *, ptr_t);
-  int_t (*render) (node_t *, list_t *, const request_t *);
+  int_t (*render) (node_t *, list_t *, const voice_t *);
 };
 
 extern ptr_t fz_node_state (node_t *, const voice_t *);

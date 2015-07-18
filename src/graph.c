@@ -297,10 +297,10 @@ fz_graph_prepare (graph_t *graph, size_t nframes)
   return 0;
 }
 
-/* Render NODE into internal buffer of GRAPH using REQUEST.  */
+/* Render NODE into internal buffer of GRAPH using VOICE.  */
 static int_t
 graph_node_render (graph_t *graph, node_t *node,
-                   const request_t *request)
+                   const voice_t *voice)
 {
   int_t err;
   int_t index = graph_node_index (graph, node);
@@ -325,7 +325,7 @@ graph_node_render (graph_t *graph, node_t *node,
         continue; /* SOURCE is not a source of NODE (or MIX = 0).  */
 
       /* Render SOURCE.  */
-      err = graph_node_render (graph, source, request);
+      err = graph_node_render (graph, source, voice);
       if (err < 0)
         return err; /* Relay failed render.  */
 
@@ -339,16 +339,16 @@ graph_node_render (graph_t *graph, node_t *node,
     }
 
   /* Render NODE.  */
-  err = fz_node_render (node, buffer, request);
+  err = fz_node_render (node, buffer, voice);
   if (err >= 0)
     *flags |= GRAPH_NODE_RENDERED;
 
   return err;
 }
 
-/* Render GRAPH using REQUEST.  */
+/* Render GRAPH using VOICE.  */
 int_t
-fz_graph_render (graph_t *graph, const request_t *request)
+fz_graph_render (graph_t *graph, const voice_t *voice)
 {
   if (graph == NULL)
     return -EINVAL;
@@ -361,7 +361,7 @@ fz_graph_render (graph_t *graph, const request_t *request)
       node_t *node = fz_ref_at (graph->nodes, index, node_t);
       if (graph_node_is_sink (graph, node))
         {
-          int_t err = graph_node_render (graph, node, request);
+          int_t err = graph_node_render (graph, node, voice);
           if (err <= 0)
             return err;
           else if (err < nrendered || nrendered == 0)

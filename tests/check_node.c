@@ -38,9 +38,9 @@ typedef struct test_node_s
 
 static int_t
 test_node_render (node_t *node, list_t *frames,
-                  const request_t *request)
+                  const voice_t *voice)
 {
-  (void) request;
+  (void) voice;
   uint_t i;
   size_t nframes = fz_len (frames);
   real_t multiplier = ((test_node_t *) node)->multiplier;
@@ -98,7 +98,7 @@ typedef struct test_mod_s
 } test_mod_t;
 
 static int_t
-test_mod_render (mod_t *mod, const request_t *request)
+test_mod_render (mod_t *mod, const voice_t *voice)
 {
   uint_t i;
   size_t size = fz_len (mod->stepbuf);
@@ -163,14 +163,13 @@ START_TEST (test_fz_node_render)
   list_t *frames = fz_new_simple_vector (real_t);
   size_t nframes = 5;
   real_t src[] = {rand (), rand (), rand (), rand (), rand ()};
-  request_t request;
   real_t multi = ((test_node_t *) test_node)->multiplier;
   uint_t i;
 
   fz_insert (frames, 0, nframes, src);
   ck_assert (fz_node_render (test_node,
                              frames,
-                             &request) == nframes);
+                             NULL) == nframes);
 
   for (i = 0; i < nframes; ++i)
     {
@@ -190,7 +189,6 @@ START_TEST (test_fz_node_connect)
   real_t multi = ((test_node_t *) test_node)->multiplier;
   mod_t *mod = fz_new (test_mod_c);
   list_t *mods = fz_new_owning_vector (mod_t *);
-  request_t request = {};
   real_t modarg = 2.2;
   int_t lhs, rhs;
   uint_t i;
@@ -223,7 +221,7 @@ START_TEST (test_fz_node_connect)
                "Expected node to have 1 mod but it had '%d'",
                fz_len (mods));
 
-  fz_node_render (test_node, frames, &request);
+  fz_node_render (test_node, frames, NULL);
   for (i = 0; i < nframes; ++i)
     {
       /* The test mod should generate a saw from 0 to `modarg'.  */

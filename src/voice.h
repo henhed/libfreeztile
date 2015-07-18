@@ -33,17 +33,11 @@ __BEGIN_DECLS
 # define DEFAULT_SAMPLE_RATE 44100
 #endif
 
-#define REQUEST_DEFAULT(voice) \
-  {voice}
-
 #define VOICE_POOL_PRIORITY_FIFO 0
 #define VOICE_POOL_PRIORITY_PRESSURE 1
 
 typedef struct voice_s voice_t;
 typedef struct vpool_s vpool_t;
-typedef struct request_s {
-  voice_t *voice;
-} request_t;
 
 extern real_t fz_get_sample_rate ();
 extern int_t fz_set_sample_rate (real_t);

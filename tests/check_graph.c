@@ -31,9 +31,9 @@ typedef struct test_node_s
 
 static int_t
 test_node_render (node_t *node, list_t *frames,
-                  const request_t *request)
+                  const voice_t *voice)
 {
-  (void) request;
+  (void) voice;
   real_t sample = ((test_node_t *) node)->sample;
   uint_t i;
   size_t nframes = fz_len (frames);
@@ -215,7 +215,6 @@ START_TEST (test_fz_graph_render)
   node_t *in3 = fz_new (test_node_c, sample3);
   node_t *out1 = fz_new (node_c);
   node_t *out2 = fz_new (node_c);
-  request_t request;
 
   fz_graph_add_node (test_graph, in1);
   fz_graph_add_node (test_graph, in2);
@@ -231,7 +230,7 @@ START_TEST (test_fz_graph_render)
   fz_graph_connect (test_graph, in3, out2);
 
   ck_assert (fz_graph_prepare (test_graph, nframes) == 0);
-  ck_assert_int_eq (fz_graph_render (test_graph, &request), nframes);
+  ck_assert_int_eq (fz_graph_render (test_graph, NULL), nframes);
 
   const list_t *outbuf1 = fz_graph_buffer (test_graph, out1);
   const list_t *outbuf2 = fz_graph_buffer (test_graph, out2);

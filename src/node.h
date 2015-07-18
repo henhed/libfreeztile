@@ -32,7 +32,7 @@ typedef struct node_s node_t;
 extern int_t fz_node_connect (node_t *, mod_t *, uint_t, ptr_t);
 extern int_t fz_node_collect_mods (const node_t *, list_t *);
 extern void fz_node_prepare (node_t *, size_t);
-extern int_t fz_node_render (node_t *, list_t *, const request_t *);
+extern int_t fz_node_render (node_t *, list_t *, const voice_t *);
 
 extern const class_t *node_c;
 

@@ -38,7 +38,7 @@ struct mod_s
   list_t *modbuf;
   list_t *vstates;
   flags_t flags;
-  int_t (*render) (mod_t *, const request_t *);
+  int_t (*render) (mod_t *, const voice_t *);
   void (*freestate) (mod_t *, ptr_t);
 };
 

@@ -48,7 +48,7 @@ struct state_s
 
 /* Form node renderer.  */
 static int_t
-form_render (node_t *node, list_t *frames, const request_t *request)
+form_render (node_t *node, list_t *frames, const voice_t *voice)
 {
   form_t *form = (form_t *) node;
   uint_t i = 0;
@@ -70,12 +70,12 @@ form_render (node_t *node, list_t *frames, const request_t *request)
   real_t *fmodarg;
   const real_t *fmoddata;
 
-  if (period == 0 || request->voice == NULL)
+  if (period == 0 || !voice)
     return 0;
 
-  freq = fz_voice_frequency (request->voice)
+  freq = fz_voice_frequency (voice)
     * pow (TWELFTH_ROOT_OF_TWO, form->pitch);
-  state = fz_node_state (node, request->voice);
+  state = fz_node_state (node, voice);
   if (freq <= 0 || state == NULL)
     return 0;
 

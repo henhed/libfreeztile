@@ -61,7 +61,7 @@ delay_state_free (node_t *node, voice_t *voice, ptr_t state)
 
 /* Aquire state instance for given VOICE and LENGTH.  */
 static struct state_s *
-get_voice_state (node_t *node, voice_t *voice, size_t length)
+get_voice_state (node_t *node, const voice_t *voice, size_t length)
 {
   size_t curlen;
   uint_t diff;
@@ -96,7 +96,7 @@ get_voice_state (node_t *node, voice_t *voice, size_t length)
 
 /* Delay node renderer.  */
 static int_t
-delay_render (node_t *node, list_t *frames, const request_t *request)
+delay_render (node_t *node, list_t *frames, const voice_t *voice)
 {
   delay_t *delay = (delay_t *) node;
   struct state_s *state;
@@ -111,7 +111,7 @@ delay_render (node_t *node, list_t *frames, const request_t *request)
   if (buflen == 0)
     return nframes;
 
-  state = get_voice_state (node, request->voice, buflen);
+  state = get_voice_state (node, voice, buflen);
   if (state == NULL)
     return 0;
 

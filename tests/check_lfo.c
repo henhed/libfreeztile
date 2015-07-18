@@ -52,7 +52,7 @@ START_TEST (test_lfo_render)
   FILE *tsv = fopen ("check_lfo.dat", "w");
   const char *header = "\"Form\"\t\"LFO\"\t\"FM Form\"\n";
   char val[16];
-  request_t request = REQUEST_DEFAULT (fz_new (voice_c));
+  voice_t *voice = fz_new (voice_c);
   size_t nframes = 300;
   node_t *form = fz_new (form_c, SHAPE_SINE);
   node_t *fmform = fz_new (form_c, SHAPE_SINE);
@@ -70,9 +70,9 @@ START_TEST (test_lfo_render)
   fz_node_connect ((node_t *) fmform, (mod_t *) lfo,
                    FORM_SLOT_FREQ, &depth);
 
-  fz_voice_press (request.voice, 2, 1);
-  fz_node_render ((node_t *) form, frames, &request);
-  fz_node_render ((node_t *) fmform, fmframes, &request);
+  fz_voice_press (voice, 2, 1);
+  fz_node_render ((node_t *) form, frames, voice);
+  fz_node_render ((node_t *) fmform, fmframes, voice);
   /* Modulation is already rendered in `fz_node_render'.  */
   lfoframes = fz_modulate_snorm ((mod_t *) lfo, 1);
 
@@ -88,16 +88,15 @@ START_TEST (test_lfo_render)
     }
 
   fz_mod_prepare ((mod_t *) lfo, nframes);
-  err = fz_mod_render ((mod_t *) lfo, &request);
+  err = fz_mod_render ((mod_t *) lfo, voice);
   fail_unless (err == nframes,
                "Expected LFO to render %u frames but it returned %d.",
                (unsigned) nframes, err);
 
-  fz_del (request.voice);
-  request.voice = NULL;
+  fz_del (voice);
 
   fz_mod_prepare ((mod_t *) lfo, nframes);
-  err = fz_mod_render ((mod_t *) lfo, &request);
+  err = fz_mod_render ((mod_t *) lfo, NULL);
   fail_unless (err < 0,
                "Expected LFO to fail with NULL voice but got '%d'.",
                err);

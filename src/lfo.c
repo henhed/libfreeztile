@@ -37,17 +37,16 @@ typedef struct lfo_s
 
 /* `fz_mod_render' callback.  */
 static int_t
-lfo_render (mod_t *mod, const request_t *request)
+lfo_render (mod_t *mod, const voice_t *voice)
 {
   lfo_t *self = (lfo_t *) mod;
-  voice_t **voiceref = fz_mod_state (mod, request->voice, voice_t *);
-  request_t formrequest;
+  voice_t **voiceref = fz_mod_state (mod, voice, voice_t *);
   real_t *steps;
   int_t nrendered;
   int_t i;
 
   if (voiceref == NULL)
-    /* Probably because `request->voice' is NULL.  */
+    /* Probably because `voice' is NULL.  */
     return -EINVAL;
 
   if (self->freq <= 0)
@@ -68,14 +67,9 @@ lfo_render (mod_t *mod, const request_t *request)
     fz_voice_release (*voiceref);
 
   fz_voice_press (*voiceref, self->freq, 1);
-
-  /* Pass on whatever the request might contain but replace the voice
-     with the internal state voice to get the desired frequency.  */
-  memcpy (&formrequest, request, sizeof (request_t));
-  formrequest.voice = *voiceref;
   nrendered = fz_node_render ((node_t *) self->form,
                               mod->stepbuf,
-                              &formrequest);
+                              *voiceref);
 
   /* Node range is -1 - 1 while modulator range should be 0 - 1 so we
      need to convert the form output.  */

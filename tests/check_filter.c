@@ -41,17 +41,17 @@ static inline real_t
 get_peak_amplitude (const filter_t *filter, real_t frequency)
 {
   form_t *form = fz_new (form_c, SHAPE_SINE);
-  request_t request = REQUEST_DEFAULT (fz_new (voice_c));
+  voice_t *voice = fz_new (voice_c);
   list_t *frames = fz_new_simple_vector (real_t);
   size_t nframes = (fz_get_sample_rate () / frequency) * 50;
 
   /* Render FILTERed sine into FRAMES.  */
-  fz_voice_press (request.voice, frequency, 1);
+  fz_voice_press (voice, frequency, 1);
   fz_clear (frames, nframes);
-  fz_node_render ((node_t *) form, frames, &request);
+  fz_node_render ((node_t *) form, frames, voice);
   ck_assert (fz_node_render ((node_t *) filter,
                              frames,
-                             &request) == nframes);
+                             voice) == nframes);
 
   /* Find peak amplitude.  */
   real_t peak = 0;
@@ -66,7 +66,7 @@ get_peak_amplitude (const filter_t *filter, real_t frequency)
         peak = val;
     }
 
-  fz_del (request.voice);
+  fz_del (voice);
   fz_del (form);
   fz_del (frames);
 

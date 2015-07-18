@@ -120,7 +120,7 @@ fz_mod_prepare (mod_t *self, size_t nframes)
 
 /* Render NFRAMES of node modulation input into MOD buffer.  */
 int_t
-fz_mod_render (mod_t *self, const request_t *request)
+fz_mod_render (mod_t *self, const voice_t *voice)
 {
   size_t nframes;
 
@@ -132,12 +132,9 @@ fz_mod_render (mod_t *self, const request_t *request)
   if (self->flags & MOD_RENDERED)
     return nframes;
 
-  if (request == NULL)
-    return -EINVAL;
-
   self->flags |= MOD_RENDERED;
   if (self->render != NULL && nframes != 0)
-    return self->render (self, request);
+    return self->render (self, voice);
 
   return nframes;
 }

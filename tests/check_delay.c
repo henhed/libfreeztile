@@ -103,7 +103,7 @@ START_TEST (test_delay_output)
   FILE *tsv = fopen ("check_delay.dat", "w");
   fprintf (tsv, "\"Wet\"\t\"Dry\"\n");
   delay_t *delay = fz_new (delay_c);
-  request_t request = REQUEST_DEFAULT (fz_new (voice_c));
+  voice_t *voice = fz_new (voice_c);
   list_t *frames = fz_new_simple_vector (real_t);
   list_t *frames_copy = fz_new_simple_vector (real_t);
   size_t nframes = 1000;
@@ -124,7 +124,7 @@ START_TEST (test_delay_output)
   fz_delay_set_feedback (delay, 0.75);
   fz_delay_set_delay (delay,
                       (nframes / fz_get_sample_rate ()) * 0.031);
-  ck_assert (fz_node_render ((node_t *) delay, frames, &request)
+  ck_assert (fz_node_render ((node_t *) delay, frames, voice)
              == nframes);
 
   /* Write to file.  */
@@ -137,7 +137,7 @@ START_TEST (test_delay_output)
 
   fz_del (frames_copy);
   fz_del (frames);
-  fz_del (request.voice);
+  fz_del (voice);
   fz_del (delay);
   fclose (tsv);
 }

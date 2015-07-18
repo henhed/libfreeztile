@@ -38,7 +38,7 @@ extern uint_t fz_graph_connect (graph_t *, const node_t *,
 extern const list_t * fz_graph_buffer (const graph_t *,
                                        const node_t *);
 extern uint_t fz_graph_prepare (graph_t *, size_t);
-extern int_t fz_graph_render (graph_t *, const request_t *);
+extern int_t fz_graph_render (graph_t *, const voice_t *);
 
 extern const class_t *graph_c;
 
