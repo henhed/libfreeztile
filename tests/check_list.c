@@ -299,10 +299,11 @@ START_TEST (test_listopt_keep)
   ck_assert (list != NULL && object != NULL);
 
   fz_insert (list, 0, 1, object);
+  fz_insert (list, 1, 1, object);
   memusage = fz_memusage (0);
   fz_del (object);
   ck_assert (fz_memusage (0) == memusage);
-  fz_erase (list, 0, 1);
+  fz_erase (list, 0, 2);
   ck_assert (fz_memusage (0) < memusage);
 
   object = fz_new (vector_c,

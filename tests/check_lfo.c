@@ -71,9 +71,13 @@ START_TEST (test_lfo_render)
                    FORM_SLOT_FREQ, &depth);
 
   fz_voice_press (voice, 2, 1);
+  fz_mod_prepare ((mod_t *) lfo, nframes);
+  fz_mod_render ((mod_t *) lfo, voice);
+  fz_node_prepare ((node_t *) form, nframes);
   fz_node_render ((node_t *) form, frames, voice);
+  fz_node_prepare ((node_t *) fmform, nframes);
   fz_node_render ((node_t *) fmform, fmframes, voice);
-  /* Modulation is already rendered in `fz_node_render'.  */
+
   lfoframes = fz_modulate_snorm ((mod_t *) lfo, 1);
 
   fputs (header, tsv);

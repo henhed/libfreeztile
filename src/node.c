@@ -164,11 +164,8 @@ fz_node_collect_mods (const node_t *node, list_t *mods)
 void
 fz_node_prepare (node_t *node, size_t nframes)
 {
-  if (!node)
-    return;
-  modconn_t *conn;
-  fz_map_each (node->mods, conn)
-    fz_mod_prepare (conn->mod, nframes);
+  (void) node;
+  (void) nframes;
 }
 
 /* Render frames from NODE into FRAMES.  */
@@ -181,18 +178,10 @@ fz_node_render (node_t *node,
     return -EINVAL;
 
   size_t nframes = fz_len (frames);
-  if (node->render == NULL || nframes == 0)
-    return nframes;
+  if (node->render && nframes > 0)
+    return node->render (node, frames, voice);
 
-  /* Prepare node in case it hasn't been done already.  */
-  fz_node_prepare (node, nframes);
-
-  /* Render modulators first.  */
-  modconn_t *conn;
-  fz_map_each (node->mods, conn)
-    fz_mod_render (conn->mod, voice);
-
-  return node->render (node, frames, voice);
+  return nframes;
 }
 
 /* `node_c' class descriptor.  */

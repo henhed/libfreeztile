@@ -121,6 +121,9 @@ START_TEST (test_adsr_render)
   fz_voice_press (voice, 20, 0.8);
 
   fz_clear (frames, nframes);
+  fz_mod_prepare ((mod_t *) adsr, nframes);
+  fz_mod_render ((mod_t *) adsr, voice);
+  fz_node_prepare ((node_t *) form, nframes);
   fz_node_render ((node_t *) form, frames, voice);
   ck_assert (fz_adsr_is_silent (adsr, voice) == FALSE);
   env = fz_modulate_unorm ((mod_t *) adsr, 1);
@@ -136,6 +139,9 @@ START_TEST (test_adsr_render)
 
   fz_voice_release (voice);
   fz_clear (frames, nframes);
+  fz_mod_prepare ((mod_t *) adsr, nframes);
+  fz_mod_render ((mod_t *) adsr, voice);
+  fz_node_prepare ((node_t *) form, nframes);
   fz_node_render ((node_t *) form, frames, voice);
   ck_assert (fz_adsr_is_silent (adsr, voice) == TRUE);
   env = fz_modulate_unorm ((mod_t *) adsr, 1);

@@ -137,7 +137,11 @@ fz_erase (list_t *list, uint_t index, uint_t num)
 
   if ((list->flags & LISTOPT_KEEP) == LISTOPT_KEEP
       || (list->flags & LISTOPT_PASS) == LISTOPT_PASS)
-    fz_del (fz_at (list, index));
+    {
+      uint_t i;
+      for (i = index; i < index + num; ++i)
+        fz_del (fz_at (list, i));
+    }
 
   return list->erase (list, index, num);
 }

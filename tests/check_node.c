@@ -221,6 +221,9 @@ START_TEST (test_fz_node_connect)
                "Expected node to have 1 mod but it had '%d'",
                fz_len (mods));
 
+  fz_mod_prepare (mod, nframes);
+  fz_mod_render (mod, NULL);
+  fz_node_prepare (test_node, nframes);
   fz_node_render (test_node, frames, NULL);
   for (i = 0; i < nframes; ++i)
     {

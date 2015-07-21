@@ -21,6 +21,9 @@
 #include "malloc.h"
 #include "graph.h"
 #include "private-node.h"
+#include "private-mod.h"
+
+#define TEST_NODE_SLOT 0
 
 /* Test subclass of `node_c'.  */
 typedef struct test_node_s
@@ -71,6 +74,50 @@ static const class_t _test_node_c = {
 
 const class_t *test_node_c = &_test_node_c;
 /* End test subclass of `node_c'.  */
+
+/* Test subclass of `mod_c'.  */
+typedef struct test_mod_s
+{
+  mod_t __parent;
+  uint_t count;
+} test_mod_t;
+
+int_t
+test_mod_render (mod_t *mod, const voice_t *voice)
+{
+  ((test_mod_t *) mod)->count++;
+  return fz_len (mod->stepbuf);
+}
+
+static ptr_t
+test_mod_constructor (ptr_t ptr, va_list *args)
+{
+  test_mod_t *self = (test_mod_t *)
+    ((const class_t *) mod_c)->construct (ptr, args);
+  self->__parent.render = test_mod_render;
+  self->count = 0;
+  return self;
+}
+
+static ptr_t
+test_mod_destructor (ptr_t ptr)
+{
+  test_mod_t *self = (test_mod_t *)
+    ((const class_t *) mod_c)->destruct (ptr);
+  return self;
+}
+
+static const class_t _test_mod_c = {
+  sizeof (test_mod_t),
+  test_mod_constructor,
+  test_mod_destructor,
+  NULL,
+  NULL,
+  NULL
+};
+
+const class_t *test_mod_c = &_test_mod_c;
+/* End test subclass of `mod_c'.  */
 
 /* `graph_c' instance instantiated in `setup'.  */
 graph_t *test_graph = NULL;
@@ -215,6 +262,12 @@ START_TEST (test_fz_graph_render)
   node_t *in3 = fz_new (test_node_c, sample3);
   node_t *out1 = fz_new (node_c);
   node_t *out2 = fz_new (node_c);
+  mod_t *mod1 = fz_new (test_mod_c);
+  mod_t *mod2 = fz_new (test_mod_c);
+
+  fz_node_connect (in1, mod1, TEST_NODE_SLOT, NULL);
+  fz_node_connect (in2, mod2, TEST_NODE_SLOT, NULL);
+  fz_node_connect (in3, mod1, TEST_NODE_SLOT, NULL);
 
   fz_graph_add_node (test_graph, in1);
   fz_graph_add_node (test_graph, in2);
@@ -231,6 +284,8 @@ START_TEST (test_fz_graph_render)
 
   ck_assert (fz_graph_prepare (test_graph, nframes) == 0);
   ck_assert_int_eq (fz_graph_render (test_graph, NULL), nframes);
+  ck_assert_int_eq (((test_mod_t *) mod1)->count, 1);
+  ck_assert_int_eq (((test_mod_t *) mod2)->count, 1);
 
   const list_t *outbuf1 = fz_graph_buffer (test_graph, out1);
   const list_t *outbuf2 = fz_graph_buffer (test_graph, out2);
@@ -246,6 +301,13 @@ START_TEST (test_fz_graph_render)
       ck_assert (out2sample == sample1 + sample3);
     }
 
+  ck_assert (fz_graph_prepare (test_graph, nframes) == 0);
+  ck_assert_int_eq (fz_graph_render (test_graph, NULL), nframes);
+  ck_assert_int_eq (((test_mod_t *) mod1)->count, 2);
+  ck_assert_int_eq (((test_mod_t *) mod2)->count, 2);
+
+  fz_del (mod2);
+  fz_del (mod1);
   fz_del (out2);
   fz_del (out1);
   fz_del (in3);

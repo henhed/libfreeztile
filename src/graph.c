@@ -21,6 +21,7 @@
 #include "graph.h"
 #include "list.h"
 #include "node.h"
+#include "mod.h"
 
 #define GRAPH_NODE_NONE 0
 #define GRAPH_NODE_RENDERED (1 << 0)
@@ -30,6 +31,7 @@ typedef struct graph_s
 {
   const class_t *__class;
   list_t *nodes;
+  list_t *mods;
   list_t *am; /* Adjacency matrix */
   list_t *buffers;
   list_t *flags;
@@ -42,6 +44,7 @@ graph_constructor (ptr_t ptr, va_list *args)
   graph_t *self = (graph_t *) ptr;
   (void) args;
   self->nodes = fz_new_retaining_vector (node_t *);
+  self->mods = fz_new_retaining_vector (mod_t *);
   self->am = fz_new_owning_vector (list_t *);
   self->buffers = fz_new_owning_vector (list_t *);
   self->flags = fz_new_simple_vector (flags_t);
@@ -56,6 +59,7 @@ graph_destructor (ptr_t ptr)
   fz_del (self->flags);
   fz_del (self->buffers);
   fz_del (self->am);
+  fz_del (self->mods);
   fz_del (self->nodes);
   return self;
 }
@@ -285,14 +289,22 @@ fz_graph_prepare (graph_t *graph, size_t nframes)
   if (graph == NULL)
     return EINVAL;
 
+  fz_clear (graph->mods, 0);
+
   uint_t i;
   size_t nnodes = fz_len (graph->nodes);
   for (i = 0; i < nnodes; ++i)
     {
+      node_t *node = fz_ref_at (graph->nodes, i, node_t);
+      fz_node_prepare (node, nframes);
+      fz_node_collect_mods (node, graph->mods);
       fz_clear (fz_ref_at (graph->buffers, i, list_t), nframes);
-      fz_node_prepare (fz_ref_at (graph->nodes, i, node_t), nframes);
       fz_val_at (graph->flags, i, flags_t) &= ~GRAPH_NODE_RENDERED;
     }
+
+  size_t nmods = fz_len (graph->mods);
+  for (i = 0; i < nmods; ++i)
+    fz_mod_prepare (fz_ref_at (graph->mods, i, mod_t), nframes);
 
   return 0;
 }
@@ -353,8 +365,12 @@ fz_graph_render (graph_t *graph, const voice_t *voice)
   if (graph == NULL)
     return -EINVAL;
 
-  int_t nrendered = 0;
   uint_t index;
+  size_t nmods = fz_len (graph->mods);
+  for (index = 0; index < nmods; ++index)
+    fz_mod_render (fz_ref_at (graph->mods, index, mod_t), voice);
+
+  int_t nrendered = 0;
   size_t nnodes = fz_len (graph->nodes);
   for (index = 0; index < nnodes; ++index)
     {
